@@ -26,11 +26,16 @@ if (!fs.existsSync(DATA_DIR)) {
 // Helpers to read/write JSON safely
 function readJSON(file, fallback = []) {
   try {
-    if (!fs.existsSync(file)) {
-      return fallback;
+    if (fs.existsSync(file)) {
+      const data = fs.readFileSync(file, 'utf-8');
+      return JSON.parse(data);
     }
-    const data = fs.readFileSync(file, 'utf-8');
-    return JSON.parse(data);
+    const altFile = path.join(process.cwd(), 'data', path.basename(file));
+    if (fs.existsSync(altFile)) {
+      const data = fs.readFileSync(altFile, 'utf-8');
+      return JSON.parse(data);
+    }
+    return fallback;
   } catch (err) {
     console.warn(`Notice reading ${file}:`, err.message);
     return fallback;
@@ -50,7 +55,7 @@ function writeJSON(file, data) {
 // Image Directory & Base64 Disk Saver
 const IMAGES_DIR = path.join(__dirname, 'images');
 if (!fs.existsSync(IMAGES_DIR)) {
-  fs.mkdirSync(IMAGES_DIR, { recursive: true });
+  try { fs.mkdirSync(IMAGES_DIR, { recursive: true }); } catch (e) {}
 }
 
 function saveBase64Image(dataString) {
@@ -77,22 +82,54 @@ function saveBase64Image(dataString) {
 
 // Serve static frontend files
 app.use(express.static(__dirname));
+app.use(express.static(process.cwd()));
+app.use('/images', express.static(path.join(__dirname, 'images')));
+app.use('/images', express.static(path.join(process.cwd(), 'images')));
+
+// Root & Static HTML Page Routes (prevents "Cannot GET /" errors)
+app.get(['/', '/index.html'], (req, res) => {
+  const file = fs.existsSync(path.join(__dirname, 'index.html'))
+    ? path.join(__dirname, 'index.html')
+    : path.join(process.cwd(), 'index.html');
+  res.sendFile(file);
+});
+
+app.get(['/artwork', '/artwork.html'], (req, res) => {
+  const file = fs.existsSync(path.join(__dirname, 'artwork.html'))
+    ? path.join(__dirname, 'artwork.html')
+    : path.join(process.cwd(), 'artwork.html');
+  res.sendFile(file);
+});
+
+app.get(['/auth', '/auth.html'], (req, res) => {
+  const file = fs.existsSync(path.join(__dirname, 'auth.html'))
+    ? path.join(__dirname, 'auth.html')
+    : path.join(process.cwd(), 'auth.html');
+  res.sendFile(file);
+});
+
+app.get(['/admin', '/admin.html'], (req, res) => {
+  const file = fs.existsSync(path.join(__dirname, 'admin.html'))
+    ? path.join(__dirname, 'admin.html')
+    : path.join(process.cwd(), 'admin.html');
+  res.sendFile(file);
+});
 
 // --- API ROUTES ---
 
 // Health check
-app.get('/api/health', (req, res) => {
+app.get(['/api/health', '/health'], (req, res) => {
   res.json({ status: 'ok', gallery: 'Eddy Pro — Editorial Fine Art', timestamp: new Date().toISOString() });
 });
 
 // GET all artworks
-app.get('/api/artworks', (req, res) => {
+app.get(['/api/artworks', '/artworks'], (req, res) => {
   const artworks = readJSON(ARTWORKS_FILE);
   res.json(artworks);
 });
 
 // GET single artwork by ID
-app.get('/api/artworks/:id', (req, res) => {
+app.get(['/api/artworks/:id', '/artworks/:id'], (req, res) => {
   const artworks = readJSON(ARTWORKS_FILE);
   const artwork = artworks.find(a => a.id === req.params.id);
   if (!artwork) {
