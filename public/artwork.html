@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EDDY PRO — Artwork Inspection Dossier</title>
+  <meta name="description" content="High-resolution visual loupe inspection and curatorial dossier for unique original contemporary fine art.">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
+</head>
+<body>
+
+  <!-- Site Navigation Header -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html" class="brand-logo">
+        <span class="brand-name">EDDY PRO</span>
+        <span class="brand-tagline">FINE ART & EDITIONS</span>
+      </a>
+
+      <nav class="nav-desktop">
+        <a href="index.html#exhibition" class="nav-link">Exhibition</a>
+        <a href="index.html#catalog" class="nav-link active">Catalog</a>
+        <a href="index.html#salon" class="nav-link">Private Viewing</a>
+        <a href="auth.html" class="nav-link">Collector Portal</a>
+      </nav>
+
+      <div class="header-tools">
+        <div class="currency-selector" title="Select Display Currency">
+          <button class="currency-btn active" data-curr="USD">USD</button>
+          <button class="currency-btn" data-curr="RWF">RWF</button>
+        </div>
+
+        <a href="auth.html#wishlist" class="wishlist-pill" title="Saved Collection">
+          <span>Saved</span>
+          <span class="wishlist-badge" style="display: none;">0</span>
+        </a>
+
+        <a href="admin.html" class="btn-curator-link">Curator</a>
+
+        <!-- Mobile Hamburger Toggle -->
+        <button class="mobile-menu-toggle" id="mobileMenuBtn" aria-label="Toggle Navigation Menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Navigation Drawer -->
+  <div class="mobile-nav-drawer" id="mobileNavDrawer">
+    <div class="mobile-nav-header">
+      <div class="brand-logo">
+        <span class="brand-name" style="color: #fff;">EDDY PRO</span>
+        <span class="brand-tagline" style="color: var(--accent-gold);">FINE ART & EDITIONS</span>
+      </div>
+      <button class="mobile-nav-close" id="mobileNavClose" aria-label="Close Navigation">&times;</button>
+    </div>
+    <nav class="mobile-nav-links">
+      <a href="index.html#exhibition" class="mobile-nav-link">Exhibition</a>
+      <a href="index.html#catalog" class="mobile-nav-link">Curated Catalog</a>
+      <a href="index.html#salon" class="mobile-nav-link">Private Viewing</a>
+      <a href="auth.html" class="mobile-nav-link">Collector Portal</a>
+      <a href="auth.html#wishlist" class="mobile-nav-link">Saved Collection</a>
+      <a href="admin.html" class="mobile-nav-link" style="color: var(--accent-gold);">Curator Directorate</a>
+    </nav>
+    <div class="mobile-nav-footer">
+      <span style="font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-inverse-muted);">Valuation Currency:</span>
+      <div class="currency-selector">
+        <button class="currency-btn active" data-curr="USD">USD</button>
+        <button class="currency-btn" data-curr="RWF">RWF</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="artwork-detail-page">
+    <div class="container">
+      
+      <!-- Breadcrumb Navigation -->
+      <nav class="detail-breadcrumb">
+        <a href="index.html">Galerie</a>
+        <span>/</span>
+        <a href="index.html#catalog">Catalog</a>
+        <span>/</span>
+        <span id="breadcrumbTitle" style="color: var(--text-primary);">Artwork Dossier</span>
+      </nav>
+
+      <div class="detail-grid">
+
+        <!-- Left Presentation Column: Loupe & Room Simulator -->
+        <div class="artwork-presentation">
+
+          <!-- Viewer Mode Toolbar -->
+          <div class="viewer-mode-bar">
+            <div class="view-mode-tabs">
+              <button class="view-mode-btn active" id="btnModeStudio" onclick="switchViewerMode('studio')">
+                Studio Loupe Zoom
+              </button>
+              <button class="view-mode-btn" id="btnModeRoom" onclick="switchViewerMode('room')">
+                View in Room
+              </button>
+            </div>
+            <span class="zoom-hint" id="viewerHint">Hover or drag to examine texture & brushwork</span>
+          </div>
+
+          <!-- Studio Inspection Canvas Stage -->
+          <div class="canvas-stage" id="studioStage">
+            <div class="framed-artwork-wrapper frame-charcoal-oak" id="framedWrapper">
+              <div class="framed-inner-shadow">
+                <div class="canvas-image-wrap" id="loupeTargetWrap">
+                  <img id="detailMainImage" src="" alt="Masterpiece Artwork">
+                  <!-- The Optical Magnifying Loupe Lens -->
+                  <div class="loupe-lens" id="loupeLens"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Room Simulator Stage (Hidden by default) -->
+          <div class="room-simulator-stage" id="roomStage">
+            <div class="room-wall-artwork" id="roomArtwork">
+              <img id="roomArtworkImg" src="" alt="Artwork on Gallery Wall">
+            </div>
+            <div class="room-bench"></div>
+            <span class="room-scale-tag">Architectural Gallery Wall · 3.5m Ceiling Scale</span>
+          </div>
+
+          <!-- Framing Selector Controls -->
+          <div class="framing-controls">
+            <div class="framing-controls-label">Interactive Bespoke Framing Visualizer</div>
+            <div class="frame-options-grid">
+              <button class="frame-btn active" data-frame="charcoal-oak" onclick="changeFrame('charcoal-oak')">
+                Floating Charcoal Oak
+              </button>
+              <button class="frame-btn" data-frame="gilded-brass" onclick="changeFrame('gilded-brass')">
+                Brushed Gilded Brass
+              </button>
+              <button class="frame-btn" data-frame="natural-maple" onclick="changeFrame('natural-maple')">
+                Natural Maple
+              </button>
+              <button class="frame-btn" data-frame="unframed" onclick="changeFrame('unframed')">
+                Raw Canvas Edge
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right Column: Curatorial Metadata & Acquisition -->
+        <div class="detail-content">
+          <div class="detail-artist-line" id="detailArtist">Artist Name</div>
+          <h1 class="detail-title" id="detailTitle">Piece Title</h1>
+
+          <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+            <span id="detailStatusBadge" class="status-badge available">Available</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted); font-style: italic;">Original 1-of-1 Work</span>
+          </div>
+
+          <!-- Price Box -->
+          <div class="detail-price-box">
+            <div>
+              <span class="spec-label">Direct Studio Valuation</span>
+              <div class="detail-price" id="detailPrice">$0</div>
+            </div>
+            <div style="text-align: right;">
+              <span class="spec-label">Framing Status</span>
+              <div style="font-size: 0.88rem; font-weight: 500; color: var(--text-primary);" id="detailFramingIncluded">
+                Museum Tray Frame Included
+              </div>
+            </div>
+          </div>
+
+          <!-- Acquisition Actions -->
+          <div class="detail-actions">
+            <button class="btn-primary btn-inquire-main" id="btnDetailInquire">
+              Inquire to Acquire / Reserve Piece
+            </button>
+            <button class="btn-secondary" id="btnDetailWishlist">
+              ♡ Save to Private Collection
+            </button>
+          </div>
+
+          <!-- Key Specifications Grid -->
+          <div class="hero-specs" style="margin-bottom: 2rem;">
+            <div class="spec-item">
+              <span class="spec-label">Year of Execution</span>
+              <span class="spec-value" id="detailYear">2025</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Medium</span>
+              <span class="spec-value" id="detailMedium">Oil on Linen</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Dimensions</span>
+              <span class="spec-value" id="detailDimensions">180 × 140 cm</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Authenticity</span>
+              <span class="spec-value" style="color: var(--accent-gold);">Signed & Sealed Archive</span>
+            </div>
+          </div>
+
+          <!-- Curatorial Accordions -->
+          <div class="curatorial-accordion">
+            
+            <div class="accordion-item open">
+              <button class="accordion-trigger">
+                <span>Curatorial Statement</span>
+                <span>+</span>
+              </button>
+              <div class="accordion-content" id="detailStatement">
+                Curatorial essay text...
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <button class="accordion-trigger">
+                <span>Provenance & Exhibition History</span>
+                <span>+</span>
+              </button>
+              <div class="accordion-content" id="detailProvenance">
+                Provenance history text...
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <button class="accordion-trigger">
+                <span>Museum White-Glove Shipping & Warranty</span>
+                <span>+</span>
+              </button>
+              <div class="accordion-content">
+                Every original piece acquired through Eddy Pro is packed in a custom-built, museum-grade, climate-stabilized wooden crate. Delivered via dedicated fine-art couriers with door-to-door insurance and white-glove uncrating/installation. Includes an embossed Certificate of Authenticity registered in our permanent salon ledger.
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Global Acquisition Inquiry Modal -->
+  <div class="modal-backdrop" id="inquiryModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <span class="tracking-wide" style="color: var(--accent-gold); display: block; margin-bottom: 4px;">Acquisition Dossier</span>
+          <h3>Private Inquiry & Reservation</h3>
+          <p>Direct communication with the Eddy Pro Curatorial Directorate.</p>
+        </div>
+        <button class="modal-close-btn" onclick="window.closeInquiryModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="inquiry-piece-banner">
+          <img id="modalArtworkThumb" src="" alt="Thumbnail" class="inquiry-piece-thumb">
+          <div class="inquiry-piece-info">
+            <h4 id="modalArtworkTitle">Piece Title</h4>
+            <p id="modalArtworkArtist">Artist Name</p>
+            <div id="modalArtworkPrice" style="font-weight: 600; color: var(--accent-gold); margin-top: 4px;">$0</div>
+          </div>
+        </div>
+
+        <form id="acquisitionInquiryForm">
+          <input type="hidden" id="modalArtworkId">
+          <input type="hidden" id="modalArtworkTitleInput">
+          <input type="hidden" id="modalArtworkPriceInput">
+          <input type="hidden" id="modalArtworkImageInput">
+          <input type="hidden" id="modalArtworkArtistInput">
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="inquiryName">Collector Name *</label>
+              <input type="text" id="inquiryName" class="form-control" placeholder="Lord / Lady / Dr. / Full Name" required>
+            </div>
+            <div class="form-group">
+              <label for="inquiryEmail">Email Address *</label>
+              <input type="email" id="inquiryEmail" class="form-control" placeholder="collector@residence.com" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="inquiryPhone">Telephone / WhatsApp</label>
+              <input type="tel" id="inquiryPhone" class="form-control" placeholder="+1 (212) 555-0199">
+            </div>
+            <div class="form-group">
+              <label for="inquiryFraming">Framing Preference</label>
+              <select id="inquiryFraming" class="form-control">
+                <!-- Dynamically populated -->
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="inquiryNotes">Inquiry Details or White-Glove Shipping Destination</label>
+            <textarea id="inquiryNotes" class="form-control" placeholder="Specify if you require international courier condition reports, residential installation advisory, or high-res studio provenance scans."></textarea>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 2rem;">
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Confidential & Protected by Eddy Pro Curatorial Trust</span>
+            <button type="submit" class="btn-primary">Transmit Acquisition Dossier</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Editorial Luxury Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <h4 style="letter-spacing: 0.12em;">EDDY PRO</h4>
+          <p style="margin-bottom: 1.5rem;">
+            An editorial luxury gallery committed to extraordinary 1-of-1 contemporary originals, architectural sculptures, and masterwork editions.
+          </p>
+          <div style="font-size: 0.82rem; color: var(--text-inverse-muted);">
+            Paris: 8 Rue de Bellechasse, 75007<br>
+            New York: 524 West 24th Street, Chelsea
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <h4>Navigation</h4>
+          <ul class="footer-links">
+            <li><a href="index.html#exhibition">Current Exhibition</a></li>
+            <li><a href="index.html#catalog">Full Catalog</a></li>
+            <li><a href="auth.html">Collector Portal</a></li>
+            <li><a href="admin.html">Curator Administration</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Services</h4>
+          <ul class="footer-links">
+            <li><a href="index.html#salon">Private Art Advisory</a></li>
+            <li><a href="index.html#salon">Bespoke Framing</a></li>
+            <li><a href="index.html#salon">Museum White-Glove Freight</a></li>
+            <li><a href="index.html#salon">Authenticity Certification</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Curator's Dispatch</h4>
+          <p>Receive confidential previews of unreleased contemporary works before public cataloguing.</p>
+          <form class="newsletter-form" onsubmit="event.preventDefault(); alert('You have been subscribed to the private Eddy Pro Curator Dispatch.'); this.reset();">
+            <input type="email" class="newsletter-input" placeholder="Your email address" required>
+            <button type="submit" class="newsletter-submit">Join</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>&copy; 2026 EDDY PRO FINE ART GALLERY. All Rights Reserved.</div>
+        <div style="display: flex; gap: 2rem;">
+          <a href="#" style="color: var(--text-inverse-muted);">Provenance Protocol</a>
+          <a href="#" style="color: var(--text-inverse-muted);">Terms of Acquisition</a>
+          <a href="#" style="color: var(--text-inverse-muted);">Privacy Charter</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+  <script>
+    let currentArtwork = null;
+    let selectedFrameStyle = 'charcoal-oak';
+
+    // Parse URL parameter ?id=...
+    function getQueryParam(param) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(param);
+    }
+
+    function initArtworkDetailPage() {
+      const artworkId = getQueryParam('id') || 'art-01';
+      currentArtwork = EddyStore.getArtworkById(artworkId);
+
+      if (!currentArtwork) {
+        currentArtwork = EddyStore.artworks[0];
+      }
+
+      // Populate DOM elements
+      document.title = `${currentArtwork.title} by ${currentArtwork.artist} — EDDY PRO`;
+      document.getElementById('breadcrumbTitle').textContent = currentArtwork.title;
+      document.getElementById('detailArtist').textContent = `${currentArtwork.artist} (b. ${currentArtwork.year || '2025'})`;
+      document.getElementById('detailTitle').textContent = currentArtwork.title;
+      document.getElementById('detailYear').textContent = currentArtwork.year || '2025';
+      document.getElementById('detailMedium').textContent = currentArtwork.medium;
+      document.getElementById('detailDimensions').textContent = currentArtwork.dimensions;
+      document.getElementById('detailStatement').textContent = currentArtwork.curatorialStatement;
+      document.getElementById('detailProvenance').textContent = currentArtwork.provenance;
+      document.getElementById('detailFramingIncluded').textContent = currentArtwork.framing || 'Museum Framing Included';
+
+      // Price & Status
+      renderPrice();
+      const statusBadge = document.getElementById('detailStatusBadge');
+      statusBadge.textContent = currentArtwork.status;
+      statusBadge.className = `status-badge ${currentArtwork.status.toLowerCase()}`;
+
+      // Images
+      const img = document.getElementById('detailMainImage');
+      img.src = currentArtwork.image;
+      document.getElementById('roomArtworkImg').src = currentArtwork.image;
+
+      // Inquire Button
+      const inqBtn = document.getElementById('btnDetailInquire');
+      if (currentArtwork.status === 'Available') {
+        inqBtn.textContent = 'Inquire to Acquire Piece';
+        inqBtn.onclick = () => window.openInquiryModal(currentArtwork.id);
+      } else if (currentArtwork.status === 'Reserved') {
+        inqBtn.textContent = 'Piece Held on Reservation — Inquire for Secondary Option';
+        inqBtn.onclick = () => window.openInquiryModal(currentArtwork.id);
+      } else {
+        inqBtn.textContent = 'Private Collection (Acquired)';
+        inqBtn.disabled = true;
+        inqBtn.style.opacity = '0.6';
+      }
+
+      // Wishlist Button
+      const favBtn = document.getElementById('btnDetailWishlist');
+      updateWishlistButton(favBtn);
+      favBtn.onclick = () => {
+        const active = EddyStore.toggleWishlist(currentArtwork.id);
+        updateWishlistButton(favBtn);
+      };
+
+      // Initialize Optical Loupe
+      initOpticalLoupe();
+    }
+
+    function renderPrice() {
+      if (currentArtwork) {
+        document.getElementById('detailPrice').textContent = EddyStore.formatPrice(currentArtwork.price);
+      }
+    }
+
+    function updateWishlistButton(btn) {
+      if (!currentArtwork) return;
+      const isFav = EddyStore.isWishlisted(currentArtwork.id);
+      btn.innerHTML = isFav ? '♥ Saved in Your Private Collection' : '♡ Save to Private Collection';
+      btn.classList.toggle('btn-gold', isFav);
+    }
+
+    // Optical Loupe Magnifier Controller
+    function initOpticalLoupe() {
+      const targetWrap = document.getElementById('loupeTargetWrap');
+      const lens = document.getElementById('loupeLens');
+      const mainImg = document.getElementById('detailMainImage');
+
+      if (!targetWrap || !lens || !mainImg) return;
+
+      const zoomUrl = currentArtwork.highResZoom || currentArtwork.image;
+      lens.style.backgroundImage = `url('${zoomUrl}')`;
+
+      const zoomLevel = 3.0; // 3x magnification factor
+
+      function moveLoupe(e) {
+        const rect = targetWrap.getBoundingClientRect();
+        let clientX = e.clientX;
+        let clientY = e.clientY;
+
+        // Support mobile touch events
+        if (e.touches && e.touches[0]) {
+          clientX = e.touches[0].clientX;
+          clientY = e.touches[0].clientY;
+        }
+
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+
+        // Bounds check
+        if (x < 0 || y < 0 || x > rect.width || y > rect.height) {
+          lens.classList.remove('active');
+          return;
+        }
+
+        lens.classList.add('active');
+        lens.style.left = `${x}px`;
+        lens.style.top = `${y}px`;
+
+        // Calculate background zoom positioning
+        const bgWidth = rect.width * zoomLevel;
+        const bgHeight = rect.height * zoomLevel;
+        lens.style.backgroundSize = `${bgWidth}px ${bgHeight}px`;
+
+        const bgX = (x * zoomLevel) - (lens.offsetWidth / 2);
+        const bgY = (y * zoomLevel) - (lens.offsetHeight / 2);
+
+        lens.style.backgroundPosition = `-${bgX}px -${bgY}px`;
+      }
+
+      targetWrap.addEventListener('mousemove', moveLoupe);
+      targetWrap.addEventListener('touchstart', moveLoupe, { passive: true });
+      targetWrap.addEventListener('touchmove', moveLoupe, { passive: true });
+
+      targetWrap.addEventListener('mouseleave', () => {
+        lens.classList.remove('active');
+      });
+
+      targetWrap.addEventListener('touchend', () => {
+        lens.classList.remove('active');
+      });
+    }
+
+    // Framing Switcher
+    function changeFrame(frameType) {
+      selectedFrameStyle = frameType;
+      const wrapper = document.getElementById('framedWrapper');
+      wrapper.className = `framed-artwork-wrapper frame-${frameType}`;
+
+      document.querySelectorAll('.frame-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.frame === frameType);
+      });
+    }
+
+    // Viewer Mode Switcher (Studio Loupe vs Room View)
+    function switchViewerMode(mode) {
+      const studioStage = document.getElementById('studioStage');
+      const roomStage = document.getElementById('roomStage');
+      const btnStudio = document.getElementById('btnModeStudio');
+      const btnRoom = document.getElementById('btnModeRoom');
+      const hint = document.getElementById('viewerHint');
+
+      if (mode === 'studio') {
+        studioStage.style.display = 'flex';
+        roomStage.style.display = 'none';
+        btnStudio.classList.add('active');
+        btnRoom.classList.remove('active');
+        hint.textContent = 'Hover or drag to examine texture & brushwork';
+      } else {
+        studioStage.style.display = 'none';
+        roomStage.style.display = 'flex';
+        btnRoom.classList.add('active');
+        btnStudio.classList.remove('active');
+        hint.textContent = 'Simulated 3.5m gallery wall with scaled bench';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      window.addEventListener('currencyChanged', renderPrice);
+      window.addEventListener('artworksLoaded', () => {
+        initArtworkDetailPage();
+      });
+      if (EddyStore.artworks && EddyStore.artworks.length > 0) {
+        initArtworkDetailPage();
+      } else {
+        EddyStore.init().then(() => {
+          initArtworkDetailPage();
+        });
+      }
+    });
+  </script>
+</body>
+</html>

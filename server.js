@@ -80,9 +80,13 @@ function saveBase64Image(dataString) {
   }
 }
 
-// Serve static frontend files
+// Serve static frontend files (checking public folder first, then root)
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(process.cwd(), 'public')));
 app.use(express.static(__dirname));
 app.use(express.static(process.cwd()));
+app.use('/images', express.static(path.join(__dirname, 'public', 'images')));
+app.use('/images', express.static(path.join(process.cwd(), 'public', 'images')));
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/images', express.static(path.join(process.cwd(), 'images')));
 

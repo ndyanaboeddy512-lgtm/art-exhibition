@@ -13,22 +13,7 @@
     {
       "source": "/api",
       "destination": "/api/index.js"
-    },
-    {
-      "source": "/",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/artwork",
-      "destination": "/artwork.html"
-    },
-    {
-      "source": "/auth",
-      "destination": "/auth.html"
-    },
-    {
-      "source": "/admin",
-      "destination": "/admin.html"
     }
-  ]
+  ],
+  "cleanUrls": true
 }

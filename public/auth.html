@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EDDY PRO — Collector Portal & Patron Salons</title>
+  <meta name="description" content="Private collector portal for acquiring patrons: sign in, track acquisition dossiers, manage saved masterworks, and view provenance records.">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
+  <style>
+    .auth-toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: #1E1D1B;
+      border: 1px solid var(--accent-gold);
+      color: #fff;
+      padding: 1rem 1.5rem;
+      border-radius: 4px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.85rem;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .auth-toast.active {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    .portal-nav-tabs {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .portal-tab-btn {
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      background: none;
+      border: 1px solid transparent;
+    }
+    .portal-tab-btn:hover {
+      color: var(--text-primary);
+    }
+    .portal-tab-btn.active {
+      background: #FAF8F5;
+      color: var(--accent-gold);
+      border: 1px solid var(--border-gold);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Site Navigation Header -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html" class="brand-logo">
+        <span class="brand-name">EDDY PRO</span>
+        <span class="brand-tagline">FINE ART & EDITIONS</span>
+      </a>
+
+      <nav class="nav-desktop">
+        <a href="index.html#exhibition" class="nav-link">Exhibition</a>
+        <a href="index.html#catalog" class="nav-link">Catalog</a>
+        <a href="index.html#salon" class="nav-link">Private Viewing</a>
+        <a href="auth.html" class="nav-link active" id="navCollectorLink">Collector Portal</a>
+      </nav>
+
+      <div class="header-tools">
+        <div class="currency-selector" title="Select Display Currency">
+          <button class="currency-btn active" data-curr="USD">USD</button>
+          <button class="currency-btn" data-curr="RWF">RWF</button>
+        </div>
+
+        <a href="#wishlist" class="wishlist-pill" title="Saved Collection">
+          <span>Saved</span>
+          <span class="wishlist-badge" style="display: none;">0</span>
+        </a>
+
+        <a href="admin.html" class="btn-curator-link">Curator</a>
+
+        <!-- Mobile Hamburger Toggle -->
+        <button class="mobile-menu-toggle" id="mobileMenuBtn" aria-label="Toggle Navigation Menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Navigation Drawer -->
+  <div class="mobile-nav-drawer" id="mobileNavDrawer">
+    <div class="mobile-nav-header">
+      <div class="brand-logo">
+        <span class="brand-name" style="color: #fff;">EDDY PRO</span>
+        <span class="brand-tagline" style="color: var(--accent-gold);">FINE ART & EDITIONS</span>
+      </div>
+      <button class="mobile-nav-close" id="mobileNavClose" aria-label="Close Navigation">&times;</button>
+    </div>
+    <nav class="mobile-nav-links">
+      <a href="index.html#exhibition" class="mobile-nav-link">Exhibition</a>
+      <a href="index.html#catalog" class="mobile-nav-link">Curated Catalog</a>
+      <a href="index.html#salon" class="mobile-nav-link">Private Viewing</a>
+      <a href="auth.html" class="mobile-nav-link active">Collector Portal</a>
+      <a href="auth.html#wishlist" class="mobile-nav-link">Saved Collection</a>
+      <a href="admin.html" class="mobile-nav-link" style="color: var(--accent-gold);">Curator Directorate</a>
+    </nav>
+    <div class="mobile-nav-footer">
+      <span style="font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-inverse-muted);">Valuation Currency:</span>
+      <div class="currency-selector">
+        <button class="currency-btn active" data-curr="USD">USD</button>
+        <button class="currency-btn" data-curr="RWF">RWF</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="auth-portal-section">
+    <div class="container">
+
+      <!-- Unauthenticated View (Login / Register) -->
+      <div id="authGateSection">
+        
+        <div class="auth-tabs-wrap">
+          <div class="auth-tabs">
+            <button class="auth-tab-btn active" id="tabLoginBtn" onclick="switchAuthTab('login')">Collector Sign In</button>
+            <button class="auth-tab-btn" id="tabRegisterBtn" onclick="switchAuthTab('register')">Register Patron Account</button>
+          </div>
+        </div>
+
+        <!-- Quick Demo Accounts Helper -->
+        <div style="max-width: 520px; margin: 0 auto 1.5rem;">
+          <div class="demo-credentials-banner" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+            <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+              <strong style="font-size: 0.85rem;">One-Click Demo Collector Accounts:</strong>
+              <span style="font-size: 0.72rem; color: var(--text-muted);">Password: <code>password123</code></span>
+            </div>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap; width: 100%;">
+              <button class="btn-fill-demo" onclick="fillCollectorDemo('a.sterling@mayfairholdings.co.uk')">Lord Sterling (London)</button>
+              <button class="btn-fill-demo" onclick="fillCollectorDemo('genevieve@manor.fr')">Lady Genevieve (Paris)</button>
+              <button class="btn-fill-demo" onclick="fillCollectorDemo('margaux.delacroix@artcapital.fr')">Margaux Delacroix</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sign In Form Box -->
+        <div class="auth-box" id="loginFormCard">
+          <div style="text-align: center; margin-bottom: 2rem;">
+            <span class="tracking-wide" style="color: var(--accent-gold);">Private Salons</span>
+            <h2 style="font-size: 2rem; margin-top: 4px;">Collector Sign In</h2>
+            <p style="font-size: 0.9rem;">Access your acquisition inquiries, reservation dossiers, and private saved collection.</p>
+          </div>
+
+          <form id="collectorLoginForm">
+            <div class="form-group">
+              <label for="collectorEmail">Collector Email Address</label>
+              <input type="email" id="collectorEmail" class="form-control" placeholder="collector@residence.com" required>
+            </div>
+            <div class="form-group">
+              <label for="collectorPassword">Password</label>
+              <input type="password" id="collectorPassword" class="form-control" placeholder="••••••••" required>
+            </div>
+
+            <div id="loginErrorMsg" style="display: none; color: #d32f2f; font-size: 0.82rem; margin-bottom: 1rem; text-align: center;">
+              Invalid credentials. Please verify your email and password or use the demo buttons above.
+            </div>
+
+            <button type="submit" class="btn-primary" style="width: 100%; margin-top: 0.5rem;" id="btnLoginSubmit">
+              Enter Collector Salon
+            </button>
+          </form>
+        </div>
+
+        <!-- Register Form Box (Hidden by default) -->
+        <div class="auth-box" id="registerFormCard" style="display: none;">
+          <div style="text-align: center; margin-bottom: 2rem;">
+            <span class="tracking-wide" style="color: var(--accent-gold);">Patron Program</span>
+            <h2 style="font-size: 2rem; margin-top: 4px;">Register Patron Profile</h2>
+            <p style="font-size: 0.9rem;">Join the Eddy Pro patron circle for priority reservation access and private salon invitations.</p>
+          </div>
+
+          <form id="collectorRegisterForm">
+            <div class="form-group">
+              <label for="regName">Full Name & Honorific *</label>
+              <input type="text" id="regName" class="form-control" placeholder="e.g. Lord / Lady / Dr. Name" required>
+            </div>
+            <div class="form-group">
+              <label for="regEmail">Email Address *</label>
+              <input type="email" id="regEmail" class="form-control" placeholder="collector@domain.com" required>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="regPhone">Contact Phone (Optional)</label>
+                <input type="tel" id="regPhone" class="form-control" placeholder="+44 20 7946 0912">
+              </div>
+              <div class="form-group">
+                <label for="regPassword">Create Password *</label>
+                <input type="password" id="regPassword" class="form-control" placeholder="••••••••" required minlength="4">
+              </div>
+            </div>
+
+            <div id="registerErrorMsg" style="display: none; color: #d32f2f; font-size: 0.82rem; margin-bottom: 1rem; text-align: center;">
+              Registration error. An account with this email may already exist.
+            </div>
+
+            <button type="submit" class="btn-primary" style="width: 100%; margin-top: 0.5rem;" id="btnRegisterSubmit">
+              Create Patron Account
+            </button>
+          </form>
+        </div>
+
+      </div>
+
+      <!-- Authenticated Collector Dashboard View -->
+      <div id="collectorDashboardSection" class="collector-dashboard" style="display: none;">
+        
+        <!-- Header Profile Card -->
+        <div class="collector-header-card">
+          <div style="display: flex; gap: 1.5rem; align-items: center;">
+            <div style="width: 64px; height: 64px; border-radius: 50%; background: var(--accent-gold); color: #fff; font-family: var(--font-serif); font-size: 1.8rem; display: flex; align-items: center; justify-content: center;" id="collectorAvatar">
+              S
+            </div>
+            <div class="collector-profile-info">
+              <div class="tracking-wide" style="color: var(--accent-gold);">Authenticated Patron</div>
+              <h2 id="collectorDisplayName">Lord Alistair Sterling</h2>
+              <div style="display: flex; align-items: center; gap: 12px; margin-top: 6px; flex-wrap: wrap;">
+                <span class="collector-tier-badge" id="collectorTier">Patron of the Arts</span>
+                <span style="color: var(--text-muted); font-size: 0.85rem;" id="collectorEmailDisplay">a.sterling@mayfairholdings.co.uk</span>
+                <span style="color: var(--text-muted); font-size: 0.85rem;" id="collectorPhoneDisplay">+44 20 7946 0912</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <button class="btn-secondary" onclick="logoutCollector()">Sign Out</button>
+          </div>
+        </div>
+
+        <!-- Collector Navigation Tabs -->
+        <div class="portal-nav-tabs">
+          <button class="portal-tab-btn active" id="tabInquiriesViewBtn" onclick="switchPortalView('inquiries')">
+            My Acquisition Inquiries (<span id="countInquiries">0</span>)
+          </button>
+          <button class="portal-tab-btn" id="tabWishlistViewBtn" onclick="switchPortalView('wishlist')">
+            Saved Masterworks (<span id="countWishlist">0</span>)
+          </button>
+          <button class="portal-tab-btn" id="tabProfileViewBtn" onclick="switchPortalView('profile')">
+            Patron Profile & Shipping Settings
+          </button>
+        </div>
+
+        <!-- VIEW 1: Acquisition Inquiries Timeline -->
+        <div id="viewInquiries" style="margin-bottom: 4rem;">
+          <div class="section-header">
+            <div>
+              <span class="tracking-wide" style="color: var(--accent-gold); display: block; margin-bottom: 4px;">Acquisitions</span>
+              <h2>Your Inquiry & Reservation History</h2>
+              <p class="section-subtitle">Real-time status updates from our curatorial team on pieces you have inquired about.</p>
+            </div>
+            <a href="index.html#catalog" class="btn-secondary" style="font-size: 0.75rem; padding: 8px 16px;">+ Inquire on Another Piece</a>
+          </div>
+
+          <div class="inquiry-timeline-list" id="collectorInquiryList">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- VIEW 2: Private Saved Collection (Wishlist) -->
+        <div id="viewWishlist" style="display: none; margin-bottom: 4rem;">
+          <div class="section-header">
+            <div>
+              <span class="tracking-wide" style="color: var(--accent-gold); display: block; margin-bottom: 4px;">Private Curation</span>
+              <h2>Saved Works & Favorites</h2>
+              <p class="section-subtitle">Original 1-of-1 works you are actively considering for private acquisition.</p>
+            </div>
+            <a href="index.html#catalog" class="btn-secondary" style="font-size: 0.75rem; padding: 8px 16px;">Browse All Works</a>
+          </div>
+
+          <div class="artwork-grid" id="collectorWishlistGrid">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- VIEW 3: Patron Profile & Shipping Information -->
+        <div id="viewProfile" style="display: none; max-width: 680px; margin: 0 auto 4rem;">
+          <div style="background: #fff; border: 1px solid var(--border-subtle); padding: 2.5rem; border-radius: 2px; box-shadow: var(--shadow-luxury);">
+            <div style="margin-bottom: 2rem;">
+              <span class="tracking-wide" style="color: var(--accent-gold);">Patron Dossier</span>
+              <h3 style="font-size: 1.8rem; margin-top: 4px;">Profile & Delivery Preferences</h3>
+              <p style="color: var(--text-muted); font-size: 0.88rem;">Keep your white-glove delivery address and contact credentials up to date.</p>
+            </div>
+
+            <form id="collectorProfileForm">
+              <div class="form-group">
+                <label>Full Name & Honorific</label>
+                <input type="text" id="profileName" class="form-control" required>
+              </div>
+
+              <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="profileEmail" class="form-control" disabled style="background: #FAF8F5; cursor: not-allowed;">
+              </div>
+
+              <div class="form-group">
+                <label>Advisory Contact Phone</label>
+                <input type="tel" id="profilePhone" class="form-control" placeholder="+44 20 7946 0912">
+              </div>
+
+              <div class="form-group">
+                <label>Private Residence / Delivery Address</label>
+                <textarea id="profileAddress" class="form-control" rows="3" placeholder="e.g. 14 Berkeley Square, Mayfair, London W1J 6ER"></textarea>
+              </div>
+
+              <div class="form-group">
+                <label>Update Password (leave blank to keep current)</label>
+                <input type="password" id="profileNewPass" class="form-control" placeholder="••••••••" minlength="4">
+              </div>
+
+              <button type="submit" class="btn-primary" style="width: 100%; margin-top: 1rem;">
+                Save Profile Information
+              </button>
+            </form>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Global Acquisition Inquiry Modal -->
+  <div class="modal-backdrop" id="inquiryModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <span class="tracking-wide" style="color: var(--accent-gold); display: block; margin-bottom: 4px;">Acquisition Dossier</span>
+          <h3>Private Inquiry & Reservation</h3>
+          <p>Direct communication with the Eddy Pro Curatorial Directorate.</p>
+        </div>
+        <button class="modal-close-btn" onclick="window.closeInquiryModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="inquiry-piece-banner">
+          <img id="modalArtworkThumb" src="" alt="Thumbnail" class="inquiry-piece-thumb">
+          <div class="inquiry-piece-info">
+            <h4 id="modalArtworkTitle">Piece Title</h4>
+            <p id="modalArtworkArtist">Artist Name</p>
+            <div id="modalArtworkPrice" style="font-weight: 600; color: var(--accent-gold); margin-top: 4px;">$0</div>
+          </div>
+        </div>
+
+        <form id="acquisitionInquiryForm">
+          <input type="hidden" id="modalArtworkId">
+          <input type="hidden" id="modalArtworkTitleInput">
+          <input type="hidden" id="modalArtworkPriceInput">
+          <input type="hidden" id="modalArtworkImageInput">
+          <input type="hidden" id="modalArtworkArtistInput">
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="inquiryName">Collector Name *</label>
+              <input type="text" id="inquiryName" class="form-control" placeholder="Lord / Lady / Dr. / Full Name" required>
+            </div>
+            <div class="form-group">
+              <label for="inquiryEmail">Email Address *</label>
+              <input type="email" id="inquiryEmail" class="form-control" placeholder="collector@residence.com" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="inquiryPhone">Phone Number (Optional)</label>
+              <input type="tel" id="inquiryPhone" class="form-control" placeholder="+44 20 7946 0912">
+            </div>
+            <div class="form-group">
+              <label for="inquiryFraming">Framing Preference</label>
+              <select id="inquiryFraming" class="form-control">
+                <option value="Included Framing">Studio Frame (Included)</option>
+                <option value="Floating Charcoal Oak">Floating Charcoal Oak</option>
+                <option value="Brushed Gilded Brass">Brushed Gilded Brass</option>
+                <option value="Natural Scandinavian Maple">Natural Scandinavian Maple</option>
+                <option value="Unframed Gallery Stretcher">Unframed Raw Gallery Edge</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="inquiryNotes">Acquisition Notes / Viewing Request</label>
+            <textarea id="inquiryNotes" class="form-control" rows="3" placeholder="Specify if you require a condition report, international insured courier quote, or white-glove home preview."></textarea>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem;">
+            <button type="button" class="btn-secondary" onclick="window.closeInquiryModal()">Cancel</button>
+            <button type="submit" class="btn-primary">Submit Private Inquiry</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Element -->
+  <div id="authToast" class="auth-toast">
+    <span style="color: var(--accent-gold); font-weight: 700;">✓</span>
+    <span id="authToastMsg">Notification</span>
+  </div>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+  <script>
+    let activeCollector = null;
+    let activePortalView = 'inquiries';
+
+    function showToast(msg) {
+      const toast = document.getElementById('authToast');
+      const text = document.getElementById('authToastMsg');
+      if (!toast || !text) return;
+      text.textContent = msg;
+      toast.classList.add('active');
+      setTimeout(() => toast.classList.remove('active'), 3500);
+    }
+
+    function switchAuthTab(mode) {
+      const loginCard = document.getElementById('loginFormCard');
+      const regCard = document.getElementById('registerFormCard');
+      const tabLogin = document.getElementById('tabLoginBtn');
+      const tabReg = document.getElementById('tabRegisterBtn');
+
+      if (mode === 'login') {
+        loginCard.style.display = 'block';
+        regCard.style.display = 'none';
+        tabLogin.classList.add('active');
+        tabReg.classList.remove('active');
+      } else {
+        loginCard.style.display = 'none';
+        regCard.style.display = 'block';
+        tabLogin.classList.remove('active');
+        tabReg.classList.add('active');
+      }
+    }
+
+    function fillCollectorDemo(email) {
+      document.getElementById('collectorEmail').value = email;
+      document.getElementById('collectorPassword').value = 'password123';
+      switchAuthTab('login');
+      showToast(`Selected demo credentials for ${email.split('@')[0]}`);
+    }
+
+    function switchPortalView(view) {
+      activePortalView = view;
+      document.getElementById('tabInquiriesViewBtn').classList.toggle('active', view === 'inquiries');
+      document.getElementById('tabWishlistViewBtn').classList.toggle('active', view === 'wishlist');
+      document.getElementById('tabProfileViewBtn').classList.toggle('active', view === 'profile');
+
+      document.getElementById('viewInquiries').style.display = view === 'inquiries' ? 'block' : 'none';
+      document.getElementById('viewWishlist').style.display = view === 'wishlist' ? 'block' : 'none';
+      document.getElementById('viewProfile').style.display = view === 'profile' ? 'block' : 'none';
+    }
+
+    function checkCollectorSession() {
+      const stored = localStorage.getItem('eddy_collector_session');
+      if (stored) {
+        try {
+          activeCollector = JSON.parse(stored);
+          showCollectorDashboard();
+        } catch (e) {
+          showAuthGate();
+        }
+      } else {
+        showAuthGate();
+      }
+    }
+
+    function showAuthGate() {
+      document.getElementById('authGateSection').style.display = 'block';
+      document.getElementById('collectorDashboardSection').style.display = 'none';
+    }
+
+    function showCollectorDashboard() {
+      document.getElementById('authGateSection').style.display = 'none';
+      document.getElementById('collectorDashboardSection').style.display = 'block';
+
+      if (activeCollector) {
+        document.getElementById('collectorDisplayName').textContent = activeCollector.name;
+        document.getElementById('collectorEmailDisplay').textContent = activeCollector.email;
+        document.getElementById('collectorTier').textContent = activeCollector.tier || 'Patron Member';
+        
+        const avatar = document.getElementById('collectorAvatar');
+        if (avatar) {
+          avatar.textContent = (activeCollector.name || 'C').charAt(0).toUpperCase();
+        }
+
+        const phoneDisplay = document.getElementById('collectorPhoneDisplay');
+        if (phoneDisplay) {
+          phoneDisplay.textContent = activeCollector.phone || '';
+          phoneDisplay.style.display = activeCollector.phone ? 'inline' : 'none';
+        }
+
+        // Fill profile form
+        document.getElementById('profileName').value = activeCollector.name || '';
+        document.getElementById('profileEmail').value = activeCollector.email || '';
+        document.getElementById('profilePhone').value = activeCollector.phone || '';
+        document.getElementById('profileAddress').value = activeCollector.address || '';
+
+        renderCollectorInquiries();
+        renderCollectorWishlist();
+      }
+    }
+
+    function logoutCollector() {
+      localStorage.removeItem('eddy_collector_session');
+      activeCollector = null;
+      showAuthGate();
+      showToast('Signed out of Collector Salon');
+      window.dispatchEvent(new CustomEvent('userSessionChanged'));
+      if (window.EddyStore && EddyStore.updateUserNav) {
+        EddyStore.updateUserNav();
+      }
+    }
+
+    function renderCollectorInquiries() {
+      const container = document.getElementById('collectorInquiryList');
+      if (!container || !activeCollector) return;
+
+      const userEmail = (activeCollector.email || '').toLowerCase();
+      const userInquiries = EddyStore.inquiries.filter(i => 
+        (i.collectorEmail || '').toLowerCase() === userEmail
+      );
+
+      const countEl = document.getElementById('countInquiries');
+      if (countEl) countEl.textContent = userInquiries.length;
+
+      if (userInquiries.length === 0) {
+        container.innerHTML = `
+          <div class="empty-timeline">
+            <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">No Active Inquiries</h3>
+            <p style="font-size: 0.9rem; color: var(--text-muted); max-width: 420px; margin: 0 auto 1.5rem;">
+              You have not submitted any acquisition dossiers yet. Inquire on any piece in our curated collection to start tracking here.
+            </p>
+            <a href="index.html#catalog" class="btn-primary">Explore Available Masterworks</a>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = userInquiries.map(inq => {
+        const stage = getInquiryStage(inq.status);
+        return `
+          <div class="inquiry-timeline-card">
+            <div class="timeline-header">
+              <div>
+                <span class="timeline-dossier-id">Dossier: ${inq.id}</span>
+                <h3 style="font-size: 1.4rem; margin-top: 4px;">${inq.artworkTitle}</h3>
+                <div style="font-size: 0.85rem; color: var(--text-muted);">Inquiry Date: ${new Date(inq.date).toLocaleDateString()}</div>
+              </div>
+              <div style="text-align: right;">
+                <span class="status-badge ${inq.status.toLowerCase().replace('/', '-')}">${inq.status}</span>
+                <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 4px;">Pref: ${inq.framePreference || 'Studio Framing'}</div>
+              </div>
+            </div>
+
+            <!-- 4-Stage Visual Progress Bar -->
+            <div class="stage-stepper">
+              <div class="stepper-track">
+                <div class="stepper-fill" style="width: ${stage.pct}%;"></div>
+              </div>
+              <div class="stepper-points">
+                <div class="stepper-step ${stage.step >= 1 ? 'completed' : ''}">
+                  <div class="step-dot">1</div>
+                  <span class="step-title">Pending Review</span>
+                </div>
+                <div class="stepper-step ${stage.step >= 2 ? 'completed' : ''}">
+                  <div class="step-dot">2</div>
+                  <span class="step-title">Curator Assigned</span>
+                </div>
+                <div class="stepper-step ${stage.step >= 3 ? 'completed' : ''}">
+                  <div class="step-dot">3</div>
+                  <span class="step-title">Pro-Forma Issued</span>
+                </div>
+                <div class="stepper-step ${stage.step >= 4 ? 'completed' : ''}">
+                  <div class="step-dot">4</div>
+                  <span class="step-title">Acquired & Archived</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="curator-response-box">
+              <div style="font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent-gold); font-weight: 600; margin-bottom: 4px;">
+                Curatorial Directorate Advisory Note:
+              </div>
+              <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 0;">
+                ${inq.curatorNotes || 'Your dossier is currently assigned to a senior gallery director. You will be contacted via email with complete condition reports and provenance records.'}
+              </p>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function getInquiryStage(status) {
+      switch (status) {
+        case 'Pending': return { step: 1, pct: 15 };
+        case 'Contacted': return { step: 2, pct: 45 };
+        case 'Invoice Sent': return { step: 3, pct: 75 };
+        case 'Closed/Sold': return { step: 4, pct: 100 };
+        default: return { step: 1, pct: 15 };
+      }
+    }
+
+    function renderCollectorWishlist() {
+      const container = document.getElementById('collectorWishlistGrid');
+      if (!container) return;
+
+      const wishlistIds = EddyStore.wishlist;
+      const countEl = document.getElementById('countWishlist');
+      if (countEl) countEl.textContent = wishlistIds.length;
+
+      const savedArtworks = EddyStore.artworks.filter(a => wishlistIds.includes(a.id));
+
+      if (savedArtworks.length === 0) {
+        container.innerHTML = `
+          <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; color: var(--text-muted);">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem; font-family: var(--font-serif);">Your Saved Collection is Empty</div>
+            <p>Save original pieces you love by clicking the heart icon on any artwork card.</p>
+            <a href="index.html#catalog" class="btn-primary" style="margin-top: 1rem;">Explore Catalog</a>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = savedArtworks.map(art => `
+        <article class="artwork-card" data-id="${art.id}">
+          <div class="artwork-image-container">
+            <button class="btn-favorite-heart active" title="Remove from Saved" onclick="removeWishlistItem('${art.id}')">♥</button>
+            <img src="${art.image}" alt="${art.title}" onerror="this.src='images/art-01.jpg'">
+          </div>
+          <div class="artwork-info">
+            <span class="artwork-artist-name">${art.artist} (${art.year || '2025'})</span>
+            <h3 class="artwork-card-title"><a href="artwork.html?id=${art.id}">${art.title}</a></h3>
+            <div class="artwork-meta-line">${art.medium} · ${art.dimensions}</div>
+            <div class="artwork-pricing-row">
+              <span class="artwork-price">${EddyStore.formatPrice(art.price)}</span>
+              <button class="artwork-inquire-link" onclick="window.openInquiryModal('${art.id}')">Inquire &rarr;</button>
+            </div>
+          </div>
+        </article>
+      `).join('');
+    }
+
+    function removeWishlistItem(id) {
+      EddyStore.toggleWishlist(id);
+      renderCollectorWishlist();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Collector Login Form
+      const loginForm = document.getElementById('collectorLoginForm');
+      if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const email = document.getElementById('collectorEmail').value.trim();
+          const password = document.getElementById('collectorPassword').value.trim();
+          const errorEl = document.getElementById('loginErrorMsg');
+          const submitBtn = document.getElementById('btnLoginSubmit');
+
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Verifying Credentials...';
+
+          try {
+            if (EddyStore.isBackendConnected) {
+              const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password, role: 'collector' })
+              });
+
+              if (res.ok) {
+                const data = await res.json();
+                activeCollector = data.user;
+                localStorage.setItem('eddy_collector_session', JSON.stringify(data.user));
+                showCollectorDashboard();
+                showToast(`Welcome back, ${data.user.name}`);
+                window.dispatchEvent(new CustomEvent('userSessionChanged'));
+                if (window.EddyStore && EddyStore.updateUserNav) EddyStore.updateUserNav();
+                return;
+              } else {
+                errorEl.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Enter Collector Salon';
+                return;
+              }
+            }
+          } catch (err) {
+            console.warn('API login offline, using fallback');
+          }
+
+          // Offline fallback login
+          if (password === 'password123' || password === 'collector2026' || email.includes('@')) {
+            const fallbackUser = {
+              name: email.split('@')[0].replace('.', ' ').toUpperCase(),
+              email,
+              tier: 'Patron of the Arts'
+            };
+            activeCollector = fallbackUser;
+            localStorage.setItem('eddy_collector_session', JSON.stringify(fallbackUser));
+            showCollectorDashboard();
+            showToast(`Welcome, ${fallbackUser.name}`);
+            window.dispatchEvent(new CustomEvent('userSessionChanged'));
+            if (window.EddyStore && EddyStore.updateUserNav) EddyStore.updateUserNav();
+          } else {
+            errorEl.style.display = 'block';
+          }
+
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Enter Collector Salon';
+        });
+      }
+
+      // Collector Register Form
+      const regForm = document.getElementById('collectorRegisterForm');
+      if (regForm) {
+        regForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const name = document.getElementById('regName').value.trim();
+          const email = document.getElementById('regEmail').value.trim();
+          const phone = document.getElementById('regPhone').value.trim();
+          const password = document.getElementById('regPassword').value.trim();
+          const errorEl = document.getElementById('registerErrorMsg');
+          const submitBtn = document.getElementById('btnRegisterSubmit');
+
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Creating Profile...';
+
+          try {
+            if (EddyStore.isBackendConnected) {
+              const res = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, phone, password })
+              });
+
+              if (res.ok) {
+                const data = await res.json();
+                activeCollector = data.user;
+                localStorage.setItem('eddy_collector_session', JSON.stringify(data.user));
+                showCollectorDashboard();
+                showToast(`Patron profile registered for ${name}`);
+                window.dispatchEvent(new CustomEvent('userSessionChanged'));
+                if (window.EddyStore && EddyStore.updateUserNav) EddyStore.updateUserNav();
+                return;
+              } else {
+                const errData = await res.json();
+                errorEl.textContent = errData.error || 'Registration failed.';
+                errorEl.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Create Patron Account';
+                return;
+              }
+            }
+          } catch (err) {
+            console.warn('API registration offline, using fallback');
+          }
+
+          // Fallback registration
+          const fallbackUser = { name, email, phone, tier: 'Patron Member' };
+          activeCollector = fallbackUser;
+          localStorage.setItem('eddy_collector_session', JSON.stringify(fallbackUser));
+          showCollectorDashboard();
+          showToast(`Patron profile created for ${name}`);
+          window.dispatchEvent(new CustomEvent('userSessionChanged'));
+          if (window.EddyStore && EddyStore.updateUserNav) EddyStore.updateUserNav();
+
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Create Patron Account';
+        });
+      }
+
+      // Profile Update Form
+      const profileForm = document.getElementById('collectorProfileForm');
+      if (profileForm) {
+        profileForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          if (!activeCollector) return;
+
+          const name = document.getElementById('profileName').value.trim();
+          const phone = document.getElementById('profilePhone').value.trim();
+          const address = document.getElementById('profileAddress').value.trim();
+          const password = document.getElementById('profileNewPass').value.trim();
+
+          const updatePayload = {
+            email: activeCollector.email,
+            name,
+            phone,
+            address,
+            ...(password ? { password } : {})
+          };
+
+          try {
+            if (EddyStore.isBackendConnected) {
+              const res = await fetch('/api/users/profile', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatePayload)
+              });
+              if (res.ok) {
+                const data = await res.json();
+                activeCollector = { ...activeCollector, ...data.user };
+                localStorage.setItem('eddy_collector_session', JSON.stringify(activeCollector));
+                showCollectorDashboard();
+                showToast('Patron profile updated successfully');
+                document.getElementById('profileNewPass').value = '';
+                return;
+              }
+            }
+          } catch (e) {}
+
+          // Fallback local update
+          activeCollector = { ...activeCollector, name, phone, address };
+          localStorage.setItem('eddy_collector_session', JSON.stringify(activeCollector));
+          showCollectorDashboard();
+          showToast('Patron profile updated');
+          document.getElementById('profileNewPass').value = '';
+        });
+      }
+
+      window.addEventListener('currencyChanged', () => {
+        if (activeCollector) {
+          renderCollectorInquiries();
+          renderCollectorWishlist();
+        }
+      });
+
+      EddyStore.init().then(() => {
+        checkCollectorSession();
+      });
+    });
+  </script>
+</body>
+</html>
