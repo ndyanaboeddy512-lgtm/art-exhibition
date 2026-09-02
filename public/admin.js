@@ -105,11 +105,11 @@ const AdminApp = {
           (email.toLowerCase() === 'admin@eddypro.com' || email.toLowerCase() === 'admin@galerielumiere.com') &&
           (password === 'curator2026' || password === 'admin')
         ) {
-          const user = { name: 'Eddy Pro Senior Curator', email, role: 'admin' };
+          const user = { name: 'Eddy Pro Admin', email, role: 'admin' };
           localStorage.setItem('eddy_curator_session', JSON.stringify(user));
           this.isLoggedIn = true;
           this.showDashboard(user);
-          this.showToast('Curator Directorate Unlocked');
+          this.showToast('Admin Dashboard Unlocked');
         } else {
           errorEl.style.display = 'block';
         }
@@ -501,7 +501,7 @@ const AdminApp = {
     const inq = EddyStore.inquiries.find(i => i.id === id);
     if (!inq) return;
 
-    const note = prompt('Enter confidential curator note for this inquiry:', inq.curatorNotes || '');
+    const note = prompt('Enter a note for this customer inquiry:', inq.curatorNotes || '');
     if (note !== null) {
       inq.curatorNotes = note;
       EddyStore.saveInquiriesLocally();
@@ -513,7 +513,7 @@ const AdminApp = {
         });
       }
       this.renderInquiriesTable();
-      this.showToast(`Note logged for inquiry ${id}`);
+      this.showToast(`Note saved for inquiry ${id}`);
     }
   },
 
@@ -523,7 +523,7 @@ const AdminApp = {
     if (!artwork) return;
 
     this.editingArtworkId = id;
-    document.getElementById('artworkModalTitle').textContent = `Edit Curated Artwork — ${artwork.title}`;
+    document.getElementById('artworkModalTitle').textContent = `Edit Artwork — ${artwork.title}`;
     
     // Details
     document.getElementById('artworkTitle').value = artwork.title || '';
@@ -535,7 +535,7 @@ const AdminApp = {
     document.getElementById('artworkStatus').value = artwork.status || 'Available';
     document.getElementById('artworkFraming').value = artwork.framing || '';
     
-    const frameOpts = artwork.frameOptions ? artwork.frameOptions.join(', ') : 'Floating Charcoal Oak, Brushed Gilded Brass, Natural Scandinavian Maple, Unframed Gallery Linen';
+    const frameOpts = artwork.frameOptions ? artwork.frameOptions.join(', ') : 'Floating Black Oak, Brushed Gold Brass, Natural Maple, Unframed';
     document.getElementById('artworkFrameOptions').value = frameOpts;
     
     document.getElementById('artworkProvenance').value = artwork.provenance || '';
@@ -552,7 +552,7 @@ const AdminApp = {
     if (artwork.image) {
       preview.src = artwork.image;
       if (nameEl) nameEl.textContent = artwork.image;
-      if (sizeEl) sizeEl.textContent = 'Active Catalog Asset';
+      if (sizeEl) sizeEl.textContent = 'Active Image';
       if (previewCard) previewCard.style.display = 'block';
       if (dropzone) dropzone.style.display = 'none';
     } else {
@@ -567,10 +567,10 @@ const AdminApp = {
   // Add Product Modal Opener (Clean empty form)
   openAddArtworkModal() {
     this.editingArtworkId = null;
-    document.getElementById('artworkModalTitle').textContent = 'Acquire & Catalog New Artwork';
+    document.getElementById('artworkModalTitle').textContent = 'Add New Artwork';
     document.getElementById('artworkForm').reset();
     document.getElementById('artworkYear').value = new Date().getFullYear();
-    document.getElementById('artworkFrameOptions').value = 'Floating Charcoal Oak, Brushed Gilded Brass, Natural Scandinavian Maple, Unframed Gallery Linen';
+    document.getElementById('artworkFrameOptions').value = 'Floating Black Oak, Brushed Gold Brass, Natural Maple, Unframed';
     document.getElementById('artworkImageUrl').value = '';
 
     const previewCard = document.getElementById('deviceUploadPreviewCard');
@@ -610,7 +610,7 @@ const AdminApp = {
 
     const frameOptions = frameOptionsRaw
       ? frameOptionsRaw.split(',').map(s => s.trim()).filter(Boolean)
-      : ["Floating Charcoal Oak", "Brushed Gilded Brass", "Natural Scandinavian Maple", "Unframed Gallery Linen"];
+      : ["Floating Black Oak", "Brushed Gold Brass", "Natural Maple", "Unframed"];
 
     const payload = {
       title,
@@ -652,7 +652,7 @@ const AdminApp = {
             console.warn('API update failed, saved locally');
           }
         }
-        this.showToast(`Updated product: "${title}"`);
+        this.showToast(`Updated artwork: "${title}"`);
       }
     } else {
       // Add new product
@@ -672,7 +672,7 @@ const AdminApp = {
           console.warn('API post failed, saved locally');
         }
       }
-      this.showToast(`Catalogued new product: "${title}"`);
+      this.showToast(`Added new artwork: "${title}"`);
     }
 
     this.closeArtworkModal();
@@ -716,7 +716,7 @@ const AdminApp = {
     this.closeDeleteModal();
     this.renderStats();
     this.renderInventoryTable();
-    this.showToast(`Permanently deaccessioned: "${deletedPiece ? deletedPiece.title : id}"`);
+    this.showToast(`Deleted artwork: "${deletedPiece ? deletedPiece.title : id}"`);
   },
 
   // Toast Notification System

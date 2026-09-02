@@ -6,140 +6,157 @@
 // Default Fallback Seed Catalog (Guarantees zero-failure standalone execution)
 const DEFAULT_ARTWORKS = [
   {
+    id: "art-mtkeap1c",
+    title: "Natural Wood Balance",
+    artist: "Eddy",
+    year: 2026,
+    medium: "Carved solid wood",
+    dimensions: "64 × 84 × 67 cm",
+    price: 900,
+    status: "Available",
+    framing: "Natural Wood Stand (Included)",
+    frameOptions: ["Natural Wood Stand", "Black Steel Base", "Modern Floating Mount"],
+    provenance: "Direct from artist Eddy. 100% original, one-of-a-kind artwork.",
+    curatorialStatement: "A clean, modern sculpture handcrafted from natural wood, highlighting authentic grain and organic balance.",
+    featured: false,
+    image: "images/artwork-1788371635007-145.jpg",
+    highResZoom: "images/artwork-1788371635007-145.jpg"
+  },
+  {
     id: "art-01",
-    title: "Nocturne en Terre d'Ombre",
-    artist: "Éléonore Vance",
+    title: "Night Shadows in Warm Earth",
+    artist: "Eleanor Vance",
     year: 2025,
-    medium: "Oil and raw earth pigment on Belgian linen",
-    dimensions: "190 × 140 cm / 74.8 × 55.1 in",
+    medium: "Oil and natural earth pigments on canvas",
+    dimensions: "190 × 140 cm / 75 × 55 in",
     price: 24500,
     status: "Available",
-    framing: "Bespoke floating raw oak tray frame with 2cm shadow gap",
-    frameOptions: ["Floating Charcoal Oak", "Brushed Gilded Brass", "Natural Scandinavian Maple", "Unframed Gallery Linen"],
-    provenance: "Direct from the artist's studio, Paris. Exhibited at Biennale d'Art Contemporain 2025. Accompanied by artist-signed Certificate of Authenticity.",
-    curatorialStatement: "A masterwork of subtle atmospheric tension. Vance layers raw Moroccan earth pigments with slow-drying linseed, creating a velvety chiaroscuro surface that breathes under shifting natural daylight.",
+    framing: "Handmade floating oak frame (Included)",
+    frameOptions: ["Floating Black Oak Frame", "Brushed Gold Brass Frame", "Natural Light Maple Frame", "Unframed Gallery Canvas"],
+    provenance: "Direct from the artist studio. Includes signed Certificate of Authenticity.",
+    curatorialStatement: "A stunning original painting featuring deep shadows and warm earth tones. Created with hand-mixed natural pigments on premium canvas.",
     featured: true,
     image: "images/art-01.jpg",
     highResZoom: "images/art-01.jpg"
   },
   {
     id: "art-02",
-    title: "Monolith & Ochre Resonance",
+    title: "Modern Bronze Form",
     artist: "Mateo Rossi",
     year: 2024,
-    medium: "Aged bronze patinated with iron chloride and volcanic ash",
-    dimensions: "78 × 42 × 35 cm / 30.7 × 16.5 × 13.8 in",
+    medium: "Cast solid bronze with warm patina",
+    dimensions: "78 × 42 × 35 cm / 31 × 16 × 14 in",
     price: 19800,
     status: "Available",
-    framing: "Presented upon a custom honed Nero Marquina marble plinth",
-    frameOptions: ["Nero Marquina Plinth", "Brushed Steel Pedestal", "Minimalist Raw Concrete Base"],
-    provenance: "Cast in the historic artistic foundry of Pietrasanta, Italy. Private collection preview, Zürich, 2024.",
-    curatorialStatement: "Rossi's monumental geometry explores weight, stillness, and balance. The deep tactile patination evokes geological millennia within a crisp modernist silhouette.",
-    featured: true,
+    framing: "Includes custom black marble display stand",
+    frameOptions: ["Black Marble Stand", "Brushed Steel Stand", "Modern Concrete Stand"],
+    provenance: "Direct from sculptor studio. Numbered 1 of 1 original. Includes Certificate of Authenticity.",
+    curatorialStatement: "A timeless bronze sculpture with smooth curves and tactile texture, resting securely on an elegant polished marble base.",
+    featured: false,
     image: "images/art-02.jpg",
     highResZoom: "images/art-02.jpg"
   },
   {
     id: "art-03",
-    title: "Fragment of White Silence",
+    title: "Minimalist White Relief",
     artist: "Soren Lindqvist",
     year: 2025,
-    medium: "Heavy textured lime plaster, marble dust, and gypsum on marine ply",
-    dimensions: "160 × 130 cm / 63.0 × 51.2 in",
+    medium: "Textured plaster and mineral relief on wood panel",
+    dimensions: "120 × 120 cm / 47 × 47 in",
     price: 16500,
     status: "Available",
-    framing: "Recessed white lacquered shadowbox with museum UV70 anti-reflective glazing",
-    frameOptions: ["Recessed White Shadowbox", "Floating Charcoal Oak", "Brushed Gilded Brass", "Unframed Raw Edge"],
-    provenance: "Stockholm Studio Archive. Exhibited at Nordiska Konsthallen, 2025.",
-    curatorialStatement: "Lindqvist manipulates lime plaster through controlled drying fractures, revealing meditative relief canyons that cast kinetic micro-shadows as ambient light transitions.",
+    framing: "Slim white gallery frame (Included)",
+    frameOptions: ["Slim White Gallery Frame", "Floating Black Oak Frame", "Natural Maple Frame"],
+    provenance: "Original studio piece. Accompanied by artist-signed certificate.",
+    curatorialStatement: "A calm, elegant white textured wall artwork that catches ambient light throughout the day, creating gentle geometric shadows.",
     featured: false,
     image: "images/art-03.jpg",
     highResZoom: "images/art-03.jpg"
   },
   {
     id: "art-04",
-    title: "Composition in Sienna and Bone",
+    title: "Warm Terracotta Abstract",
     artist: "Clara Beauchamp",
     year: 2024,
-    medium: "Mineral pigments and cold wax on hand-stretched raw linen",
-    dimensions: "175 × 150 cm / 68.9 × 59.1 in",
+    medium: "Oil and warm clay pigments on heavy linen",
+    dimensions: "160 × 130 cm / 63 × 51 in",
     price: 22000,
     status: "Reserved",
-    framing: "Hand-gilded aged bronze-leaf cap moulding",
-    frameOptions: ["Aged Bronze Leaf", "Floating Charcoal Oak", "Natural Scandinavian Maple"],
-    provenance: "Acquired through Eddy Pro private salon, New York. Currently held under acquisition reservation.",
-    curatorialStatement: "A dialogue between organic translucency and rigid compositional architecture. Beauchamp's beeswax layering lends an inner luminosity akin to ancient encaustic murals.",
+    framing: "Solid walnut floating frame (Included)",
+    frameOptions: ["Solid Walnut Floating Frame", "Black Oak Frame", "Raw Canvas Edge"],
+    provenance: "Exhibited at private London gallery. Fully authenticated original.",
+    curatorialStatement: "A rich, grounded composition using warm terracotta, sand, and cream tones to bring warmth and comfort into living spaces.",
     featured: false,
     image: "images/art-04.jpg",
     highResZoom: "images/art-04.jpg"
   },
   {
     id: "art-05",
-    title: "The Architecture of Oblivion",
+    title: "Architectural Steel & Stone",
     artist: "Kaito Moriyama",
-    year: 2023,
-    medium: "Sumi ink, crushed lapis lazuli, and bone glue on hand-milled kozo paper",
-    dimensions: "210 × 120 cm / 82.7 × 47.2 in",
+    year: 2025,
+    medium: "Blackened steel and carved volcanic stone",
+    dimensions: "92 × 48 × 40 cm / 36 × 19 × 16 in",
     price: 31000,
-    status: "Sold",
-    framing: "Custom frameless acrylic capsule mount with museum preservation seal",
-    frameOptions: ["Museum Acrylic Capsule", "Floating Charcoal Oak"],
-    provenance: "Private Collection, Geneva. Previously showcased at Tokyo Metropolitan Arts Pavilion.",
-    curatorialStatement: "Moriyama invokes the traditional void (ma) in a scale that overwhelms the viewer's periphery. The deep crystalline blue shimmers subtly against intense matte black ink.",
+    status: "Available",
+    framing: "Integrated weighted architectural stand",
+    frameOptions: ["Integrated Steel Stand", "Gallery Pedestal (Optional)"],
+    provenance: "Direct studio piece. Verified authentic by Eddy Pro Gallery.",
+    curatorialStatement: "A bold sculpture combining dark structural steel with hand-carved stone, inspired by modern architectural geometry.",
     featured: false,
     image: "images/art-05.jpg",
     highResZoom: "images/art-05.jpg"
   },
   {
     id: "art-06",
-    title: "L'Heure Dorée (Golden Horizon)",
-    artist: "Éléonore Vance",
+    title: "Golden Sunset Horizon",
+    artist: "Eleanor Vance",
     year: 2025,
-    medium: "Oil, 23.75-karat gold leaf, and copal varnish on panel",
-    dimensions: "140 × 140 cm / 55.1 × 55.1 in",
+    medium: "Oil painting with subtle 24K gold leaf accents",
+    dimensions: "200 × 150 cm / 79 × 59 in",
     price: 27500,
     status: "Available",
-    framing: "Brushed champagne gold floating frame with matching inner reveal",
-    frameOptions: ["Brushed Gilded Brass", "Floating Charcoal Oak", "Natural Scandinavian Maple"],
-    provenance: "Direct studio accession, Paris. Certified original 1-of-1 archive.",
-    curatorialStatement: "Explores the alchemy between physical gold leaf and delicate translucent oil glazes. The painting dynamically catches ambient room illumination, transforming throughout the day.",
+    framing: "Custom gilded edge frame (Included)",
+    frameOptions: ["Gilded Brass Frame", "Charcoal Floating Frame", "Unframed Gallery Linen"],
+    provenance: "Original studio creation. Includes signed certificate and authentication documents.",
+    curatorialStatement: "A luminous abstract landscape capturing the warm glow of dusk. Gentle gold details reflect sunlight and ambient lighting.",
     featured: false,
     image: "images/art-06.jpg",
     highResZoom: "images/art-06.jpg"
   },
   {
     id: "art-07",
-    title: "Form & Void III (Brutalist Study)",
+    title: "White Marble Curves",
     artist: "Mateo Rossi",
-    year: 2025,
-    medium: "Solid hand-chiseled Carrara marble and oxidized corten steel",
-    dimensions: "95 × 50 × 30 cm / 37.4 × 19.7 × 11.8 in",
+    year: 2024,
+    medium: "Solid white Carrara marble, hand-polished",
+    dimensions: "65 × 38 × 30 cm / 26 × 15 × 12 in",
     price: 26000,
-    status: "Available",
-    framing: "Architectural freestanding installation with counterweight brass base",
-    frameOptions: ["Architectural Pedestal", "Nero Marquina Plinth"],
-    provenance: "Eddy Pro Contemporary Pavilion collection. Solo exhibition 2025.",
-    curatorialStatement: "A breathtaking confrontation of Carrara marble's velvety smoothness juxtaposed against rugged, rust-patinated corten steel. A meditation on architectural permanence.",
+    status: "Sold",
+    framing: "Includes protective felted display base",
+    frameOptions: ["Polished White Marble Base", "Dark Walnut Pedestal"],
+    provenance: "Sold to private collection in London. Archived in gallery permanent catalog.",
+    curatorialStatement: "Carved from a single block of authentic white marble, featuring smooth flowing lines and a satiny hand-finished touch.",
     featured: false,
     image: "images/art-07.jpg",
     highResZoom: "images/art-07.jpg"
   },
   {
-    "id": "art-08",
-    "title": "Tension in Neutralis",
-    "artist": "Soren Lindqvist",
-    "year": 2025,
-    "medium": "Raw jute, oil pigment, chalk, and natural gum on cedar stretcher",
-    "dimensions": "200 × 160 cm / 78.7 × 63.0 in",
-    "price": 21500,
-    "status": "Available",
-    "framing": "Minimalist blackened steel profile frame",
-    "frameOptions": ["Floating Charcoal Oak", "Brushed Gilded Brass", "Natural Scandinavian Maple", "Raw Canvas Edge"],
-    "provenance": "Stockholm Art Fair 2025, Eddy Pro Curated Pavilion.",
-    "curatorialStatement": "Rich textural interplay where exposed rough jute fibers puncture through creamy gestural chalk strata, invoking raw Scandinavian landscapes.",
-    "featured": false,
-    "image": "images/art-08.jpg",
-    "highResZoom": "images/art-08.jpg"
+    id: "art-08",
+    title: "Natural Linen & Earth Tones",
+    artist: "Soren Lindqvist",
+    year: 2025,
+    medium: "Woven raw linen, natural beeswax, and walnut stain",
+    dimensions: "150 × 110 cm / 59 × 43 in",
+    price: 21500,
+    status: "Available",
+    framing: "Light oak shadowbox frame with museum glass",
+    frameOptions: ["Light Oak Shadowbox Frame", "Matte Black Frame", "Natural Unframed Edge"],
+    provenance: "Studio archive piece. Complete with artist signature on reverse.",
+    curatorialStatement: "An organic textile artwork made from pure natural materials, bringing calm serenity and rich texture into modern interiors.",
+    featured: false,
+    image: "images/art-08.jpg",
+    highResZoom: "images/art-08.jpg"
   }
 ];
 
@@ -147,34 +164,34 @@ const DEFAULT_INQUIRIES = [
   {
     id: "inq-101",
     artworkId: "art-04",
-    artworkTitle: "Composition in Sienna and Bone",
+    artworkTitle: "Warm Terracotta Abstract",
     artworkArtist: "Clara Beauchamp",
     artworkPrice: 22000,
     artworkImage: "images/art-04.jpg",
-    collectorName: "Lord Alistair Sterling",
+    collectorName: "John Sterling",
     collectorEmail: "a.sterling@mayfairholdings.co.uk",
     collectorPhone: "+44 20 7946 0912",
-    framePreference: "Hand-gilded aged bronze-leaf cap moulding",
-    notes: "Inquiring on behalf of a private Mayfair residence. Requesting courier condition report and provenance documentation.",
+    framePreference: "Solid Walnut Floating Frame",
+    notes: "Looking to purchase this piece with insured delivery to London.",
     status: "Contacted",
     date: "2026-08-28T14:20:00Z",
-    curatorNotes: "Spoke with client advisor. Sent physical certificate of authenticity scan & high-res UV condition report."
+    curatorNotes: "Spoke with client. Provided Certificate of Authenticity and shipping options."
   },
   {
     id: "inq-102",
     artworkId: "art-01",
-    artworkTitle: "Nocturne en Terre d'Ombre",
-    artworkArtist: "Éléonore Vance",
+    artworkTitle: "Night Shadows in Warm Earth",
+    artworkArtist: "Eleanor Vance",
     artworkPrice: 24500,
     artworkImage: "images/art-01.jpg",
-    collectorName: "Margaux Delacroix",
+    collectorName: "Sarah Jenkins",
     collectorEmail: "margaux.delacroix@artcapital.fr",
-    collectorPhone: "+33 6 55 58 41 90",
-    framePreference: "Floating Charcoal Oak",
-    notes: "We are designing a penthouse on Île Saint-Louis. Would like to reserve this piece subject to viewing in Paris.",
+    collectorPhone: "+1 415 555 2671",
+    framePreference: "Floating Black Oak Frame",
+    notes: "We would like to reserve this piece for our home in San Francisco.",
     status: "Pending",
     date: "2026-09-01T09:45:00Z",
-    curatorNotes: "Initial inquiry logged. Follow-up scheduled with senior curator."
+    curatorNotes: "Inquiry received. Awaiting client confirmation."
   }
 ];
 
@@ -519,7 +536,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       e.preventDefault();
       const submitBtn = inquiryForm.querySelector('button[type="submit"]');
       const originalText = submitBtn.innerHTML;
-      submitBtn.innerHTML = 'Submitting Acquisition Dossier...';
+      submitBtn.innerHTML = 'Sending Inquiry...';
       submitBtn.disabled = true;
 
       const inquiryData = {
@@ -538,21 +555,21 @@ document.addEventListener('DOMContentLoaded', async () => {
       try {
         const saved = await EddyStore.addInquiry(inquiryData);
         
-        // Render sleek confirmation within modal
+        // Render simple clean confirmation within modal
         const modalBody = document.querySelector('#inquiryModal .modal-body');
         modalBody.innerHTML = `
           <div style="text-align: center; padding: 2.5rem 1rem;">
             <div style="width: 60px; height: 60px; border-radius: 50%; background: #FAF8F5; border: 1px solid var(--accent-gold); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; color: var(--accent-gold); font-size: 1.5rem;">✓</div>
-            <h3 style="font-size: 2rem; margin-bottom: 0.75rem;">Inquiry Dossier Logged</h3>
+            <h3 style="font-size: 2rem; margin-bottom: 0.75rem;">Inquiry Sent Successfully</h3>
             <p style="font-size: 1rem; color: var(--text-secondary); max-width: 480px; margin: 0 auto 1.5rem;">
-              Thank you, <strong>${saved.collectorName}</strong>. Our senior curatorial director has received your reservation request for <em>"${saved.artworkTitle}"</em>.
+              Thank you, <strong>${saved.collectorName}</strong>. We have received your inquiry for <em>"${saved.artworkTitle}"</em>. Our gallery team will email you shortly with pricing and delivery options.
             </p>
             <div style="background: var(--bg-primary); padding: 1rem 1.5rem; border: 1px solid var(--border-subtle); display: inline-block; margin-bottom: 2rem; border-radius: 2px;">
-              <span style="font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted);">Reference Code:</span>
+              <span style="font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted);">Reference Number:</span>
               <div style="font-family: var(--font-serif); font-size: 1.4rem; color: var(--text-primary); font-weight: 500;">${saved.id}</div>
             </div>
             <div>
-              <a href="auth.html" class="btn-primary" style="margin-right: 1rem;">Track in Collector Portal</a>
+              <a href="auth.html" class="btn-primary" style="margin-right: 1rem;">View in My Account</a>
               <button onclick="window.closeInquiryModal(); window.location.reload();" class="btn-secondary">Return to Gallery</button>
             </div>
           </div>

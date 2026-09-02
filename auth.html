@@ -73,10 +73,10 @@
       </a>
 
       <nav class="nav-desktop">
-        <a href="index.html#exhibition" class="nav-link">Exhibition</a>
-        <a href="index.html#catalog" class="nav-link">Catalog</a>
-        <a href="index.html#salon" class="nav-link">Private Viewing</a>
-        <a href="auth.html" class="nav-link active" id="navCollectorLink">Collector Portal</a>
+        <a href="index.html#exhibition" class="nav-link">Featured Art</a>
+        <a href="index.html#catalog" class="nav-link">Gallery</a>
+        <a href="index.html#salon" class="nav-link">Book a Viewing</a>
+        <a href="auth.html" class="nav-link active" id="navCollectorLink">My Account</a>
       </nav>
 
       <div class="header-tools">
@@ -85,12 +85,12 @@
           <button class="currency-btn" data-curr="RWF">RWF</button>
         </div>
 
-        <a href="#wishlist" class="wishlist-pill" title="Saved Collection">
+        <a href="#wishlist" class="wishlist-pill" title="Saved Artworks">
           <span>Saved</span>
           <span class="wishlist-badge" style="display: none;">0</span>
         </a>
 
-        <a href="admin.html" class="btn-curator-link">Curator</a>
+        <a href="admin.html" class="btn-curator-link">Admin</a>
 
         <!-- Mobile Hamburger Toggle -->
         <button class="mobile-menu-toggle" id="mobileMenuBtn" aria-label="Toggle Navigation Menu">
@@ -107,20 +107,20 @@
     <div class="mobile-nav-header">
       <div class="brand-logo">
         <span class="brand-name" style="color: #fff;">EDDY PRO</span>
-        <span class="brand-tagline" style="color: var(--accent-gold);">FINE ART & EDITIONS</span>
+        <span class="brand-tagline" style="color: var(--accent-gold);">FINE ART GALLERY</span>
       </div>
       <button class="mobile-nav-close" id="mobileNavClose" aria-label="Close Navigation">&times;</button>
     </div>
     <nav class="mobile-nav-links">
-      <a href="index.html#exhibition" class="mobile-nav-link">Exhibition</a>
-      <a href="index.html#catalog" class="mobile-nav-link">Curated Catalog</a>
-      <a href="index.html#salon" class="mobile-nav-link">Private Viewing</a>
-      <a href="auth.html" class="mobile-nav-link active">Collector Portal</a>
-      <a href="auth.html#wishlist" class="mobile-nav-link">Saved Collection</a>
-      <a href="admin.html" class="mobile-nav-link" style="color: var(--accent-gold);">Curator Directorate</a>
+      <a href="index.html#exhibition" class="mobile-nav-link">Featured Art</a>
+      <a href="index.html#catalog" class="mobile-nav-link">All Artworks</a>
+      <a href="index.html#salon" class="mobile-nav-link">Book a Viewing</a>
+      <a href="auth.html" class="mobile-nav-link active">My Account</a>
+      <a href="auth.html#wishlist" class="mobile-nav-link">Saved Artworks</a>
+      <a href="admin.html" class="mobile-nav-link" style="color: var(--accent-gold);">Admin Dashboard</a>
     </nav>
     <div class="mobile-nav-footer">
-      <span style="font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-inverse-muted);">Valuation Currency:</span>
+      <span style="font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-inverse-muted);">Display Currency:</span>
       <div class="currency-selector">
         <button class="currency-btn active" data-curr="USD">USD</button>
         <button class="currency-btn" data-curr="RWF">RWF</button>
@@ -136,8 +136,8 @@
         
         <div class="auth-tabs-wrap">
           <div class="auth-tabs">
-            <button class="auth-tab-btn active" id="tabLoginBtn" onclick="switchAuthTab('login')">Collector Sign In</button>
-            <button class="auth-tab-btn" id="tabRegisterBtn" onclick="switchAuthTab('register')">Register Patron Account</button>
+            <button class="auth-tab-btn active" id="tabLoginBtn" onclick="switchAuthTab('login')">Sign In</button>
+            <button class="auth-tab-btn" id="tabRegisterBtn" onclick="switchAuthTab('register')">Create Free Account</button>
           </div>
         </div>
 
@@ -145,13 +145,13 @@
         <div style="max-width: 520px; margin: 0 auto 1.5rem;">
           <div class="demo-credentials-banner" style="flex-direction: column; align-items: flex-start; gap: 8px;">
             <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
-              <strong style="font-size: 0.85rem;">One-Click Demo Collector Accounts:</strong>
+              <strong style="font-size: 0.85rem;">One-Click Demo Accounts:</strong>
               <span style="font-size: 0.72rem; color: var(--text-muted);">Password: <code>password123</code></span>
             </div>
             <div style="display: flex; gap: 6px; flex-wrap: wrap; width: 100%;">
-              <button class="btn-fill-demo" onclick="fillCollectorDemo('a.sterling@mayfairholdings.co.uk')">Lord Sterling (London)</button>
-              <button class="btn-fill-demo" onclick="fillCollectorDemo('genevieve@manor.fr')">Lady Genevieve (Paris)</button>
-              <button class="btn-fill-demo" onclick="fillCollectorDemo('margaux.delacroix@artcapital.fr')">Margaux Delacroix</button>
+              <button class="btn-fill-demo" onclick="fillCollectorDemo('a.sterling@mayfairholdings.co.uk')">John Sterling (London)</button>
+              <button class="btn-fill-demo" onclick="fillCollectorDemo('genevieve@manor.fr')">Emily Davis (New York)</button>
+              <button class="btn-fill-demo" onclick="fillCollectorDemo('margaux.delacroix@artcapital.fr')">Sarah Jenkins (San Francisco)</button>
             </div>
           </div>
         </div>
@@ -159,15 +159,15 @@
         <!-- Sign In Form Box -->
         <div class="auth-box" id="loginFormCard">
           <div style="text-align: center; margin-bottom: 2rem;">
-            <span class="tracking-wide" style="color: var(--accent-gold);">Private Salons</span>
-            <h2 style="font-size: 2rem; margin-top: 4px;">Collector Sign In</h2>
-            <p style="font-size: 0.9rem;">Access your acquisition inquiries, reservation dossiers, and private saved collection.</p>
+            <span class="tracking-wide" style="color: var(--accent-gold);">Welcome Back</span>
+            <h2 style="font-size: 2rem; margin-top: 4px;">Sign In to Your Account</h2>
+            <p style="font-size: 0.9rem;">View your purchase inquiries, saved artworks, and delivery profile.</p>
           </div>
 
           <form id="collectorLoginForm">
             <div class="form-group">
-              <label for="collectorEmail">Collector Email Address</label>
-              <input type="email" id="collectorEmail" class="form-control" placeholder="collector@residence.com" required>
+              <label for="collectorEmail">Email Address</label>
+              <input type="email" id="collectorEmail" class="form-control" placeholder="name@email.com" required>
             </div>
             <div class="form-group">
               <label for="collectorPassword">Password</label>
@@ -175,11 +175,11 @@
             </div>
 
             <div id="loginErrorMsg" style="display: none; color: #d32f2f; font-size: 0.82rem; margin-bottom: 1rem; text-align: center;">
-              Invalid credentials. Please verify your email and password or use the demo buttons above.
+              Incorrect email or password. Please try again or use the demo buttons above.
             </div>
 
             <button type="submit" class="btn-primary" style="width: 100%; margin-top: 0.5rem;" id="btnLoginSubmit">
-              Enter Collector Salon
+              Sign In
             </button>
           </form>
         </div>
@@ -187,37 +187,37 @@
         <!-- Register Form Box (Hidden by default) -->
         <div class="auth-box" id="registerFormCard" style="display: none;">
           <div style="text-align: center; margin-bottom: 2rem;">
-            <span class="tracking-wide" style="color: var(--accent-gold);">Patron Program</span>
-            <h2 style="font-size: 2rem; margin-top: 4px;">Register Patron Profile</h2>
-            <p style="font-size: 0.9rem;">Join the Eddy Pro patron circle for priority reservation access and private salon invitations.</p>
+            <span class="tracking-wide" style="color: var(--accent-gold);">Join Eddy Pro</span>
+            <h2 style="font-size: 2rem; margin-top: 4px;">Create an Account</h2>
+            <p style="font-size: 0.9rem;">Save favorite pieces, track your purchases, and get priority access to new artworks.</p>
           </div>
 
           <form id="collectorRegisterForm">
             <div class="form-group">
-              <label for="regName">Full Name & Honorific *</label>
-              <input type="text" id="regName" class="form-control" placeholder="e.g. Lord / Lady / Dr. Name" required>
+              <label for="regName">Your Full Name *</label>
+              <input type="text" id="regName" class="form-control" placeholder="e.g. John Smith" required>
             </div>
             <div class="form-group">
               <label for="regEmail">Email Address *</label>
-              <input type="email" id="regEmail" class="form-control" placeholder="collector@domain.com" required>
+              <input type="email" id="regEmail" class="form-control" placeholder="name@email.com" required>
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label for="regPhone">Contact Phone (Optional)</label>
-                <input type="tel" id="regPhone" class="form-control" placeholder="+44 20 7946 0912">
+                <label for="regPhone">Phone Number (Optional)</label>
+                <input type="tel" id="regPhone" class="form-control" placeholder="+1 (212) 555-0199">
               </div>
               <div class="form-group">
-                <label for="regPassword">Create Password *</label>
+                <label for="regPassword">Password *</label>
                 <input type="password" id="regPassword" class="form-control" placeholder="••••••••" required minlength="4">
               </div>
             </div>
 
             <div id="registerErrorMsg" style="display: none; color: #d32f2f; font-size: 0.82rem; margin-bottom: 1rem; text-align: center;">
-              Registration error. An account with this email may already exist.
+              Registration error. An account with this email already exists.
             </div>
 
             <button type="submit" class="btn-primary" style="width: 100%; margin-top: 0.5rem;" id="btnRegisterSubmit">
-              Create Patron Account
+              Create Account
             </button>
           </form>
         </div>
@@ -234,10 +234,10 @@
               S
             </div>
             <div class="collector-profile-info">
-              <div class="tracking-wide" style="color: var(--accent-gold);">Authenticated Patron</div>
-              <h2 id="collectorDisplayName">Lord Alistair Sterling</h2>
+              <div class="tracking-wide" style="color: var(--accent-gold);">Signed In</div>
+              <h2 id="collectorDisplayName">John Sterling</h2>
               <div style="display: flex; align-items: center; gap: 12px; margin-top: 6px; flex-wrap: wrap;">
-                <span class="collector-tier-badge" id="collectorTier">Patron of the Arts</span>
+                <span class="collector-tier-badge" id="collectorTier">Art Collector</span>
                 <span style="color: var(--text-muted); font-size: 0.85rem;" id="collectorEmailDisplay">a.sterling@mayfairholdings.co.uk</span>
                 <span style="color: var(--text-muted); font-size: 0.85rem;" id="collectorPhoneDisplay">+44 20 7946 0912</span>
               </div>
@@ -251,13 +251,13 @@
         <!-- Collector Navigation Tabs -->
         <div class="portal-nav-tabs">
           <button class="portal-tab-btn active" id="tabInquiriesViewBtn" onclick="switchPortalView('inquiries')">
-            My Acquisition Inquiries (<span id="countInquiries">0</span>)
+            My Inquiries (<span id="countInquiries">0</span>)
           </button>
           <button class="portal-tab-btn" id="tabWishlistViewBtn" onclick="switchPortalView('wishlist')">
-            Saved Masterworks (<span id="countWishlist">0</span>)
+            Saved Artworks (<span id="countWishlist">0</span>)
           </button>
           <button class="portal-tab-btn" id="tabProfileViewBtn" onclick="switchPortalView('profile')">
-            Patron Profile & Shipping Settings
+            Profile & Delivery Address
           </button>
         </div>
 
@@ -265,9 +265,9 @@
         <div id="viewInquiries" style="margin-bottom: 4rem;">
           <div class="section-header">
             <div>
-              <span class="tracking-wide" style="color: var(--accent-gold); display: block; margin-bottom: 4px;">Acquisitions</span>
-              <h2>Your Inquiry & Reservation History</h2>
-              <p class="section-subtitle">Real-time status updates from our curatorial team on pieces you have inquired about.</p>
+              <span class="tracking-wide" style="color: var(--accent-gold); display: block; margin-bottom: 4px;">Orders & Inquiries</span>
+              <h2>Your Artwork Inquiries</h2>
+              <p class="section-subtitle">Real-time status updates from our gallery team on pieces you have inquired about or reserved.</p>
             </div>
             <a href="index.html#catalog" class="btn-secondary" style="font-size: 0.75rem; padding: 8px 16px;">+ Inquire on Another Piece</a>
           </div>
@@ -281,11 +281,11 @@
         <div id="viewWishlist" style="display: none; margin-bottom: 4rem;">
           <div class="section-header">
             <div>
-              <span class="tracking-wide" style="color: var(--accent-gold); display: block; margin-bottom: 4px;">Private Curation</span>
-              <h2>Saved Works & Favorites</h2>
-              <p class="section-subtitle">Original 1-of-1 works you are actively considering for private acquisition.</p>
+              <span class="tracking-wide" style="color: var(--accent-gold); display: block; margin-bottom: 4px;">Favorites</span>
+              <h2>Saved Artworks</h2>
+              <p class="section-subtitle">Original pieces you have saved to view or buy later.</p>
             </div>
-            <a href="index.html#catalog" class="btn-secondary" style="font-size: 0.75rem; padding: 8px 16px;">Browse All Works</a>
+            <a href="index.html#catalog" class="btn-secondary" style="font-size: 0.75rem; padding: 8px 16px;">Browse All Artworks</a>
           </div>
 
           <div class="artwork-grid" id="collectorWishlistGrid">
@@ -297,14 +297,14 @@
         <div id="viewProfile" style="display: none; max-width: 680px; margin: 0 auto 4rem;">
           <div style="background: #fff; border: 1px solid var(--border-subtle); padding: 2.5rem; border-radius: 2px; box-shadow: var(--shadow-luxury);">
             <div style="margin-bottom: 2rem;">
-              <span class="tracking-wide" style="color: var(--accent-gold);">Patron Dossier</span>
+              <span class="tracking-wide" style="color: var(--accent-gold);">Account Details</span>
               <h3 style="font-size: 1.8rem; margin-top: 4px;">Profile & Delivery Preferences</h3>
-              <p style="color: var(--text-muted); font-size: 0.88rem;">Keep your white-glove delivery address and contact credentials up to date.</p>
+              <p style="color: var(--text-muted); font-size: 0.88rem;">Keep your delivery address and contact information updated for safe delivery.</p>
             </div>
 
             <form id="collectorProfileForm">
               <div class="form-group">
-                <label>Full Name & Honorific</label>
+                <label>Full Name</label>
                 <input type="text" id="profileName" class="form-control" required>
               </div>
 
@@ -314,22 +314,22 @@
               </div>
 
               <div class="form-group">
-                <label>Advisory Contact Phone</label>
-                <input type="tel" id="profilePhone" class="form-control" placeholder="+44 20 7946 0912">
+                <label>Phone Number</label>
+                <input type="tel" id="profilePhone" class="form-control" placeholder="+1 (212) 555-0199">
               </div>
 
               <div class="form-group">
-                <label>Private Residence / Delivery Address</label>
-                <textarea id="profileAddress" class="form-control" rows="3" placeholder="e.g. 14 Berkeley Square, Mayfair, London W1J 6ER"></textarea>
+                <label>Delivery Address (Street, City, Postal Code, Country)</label>
+                <textarea id="profileAddress" class="form-control" rows="3" placeholder="e.g. 14 Berkeley Square, London, United Kingdom"></textarea>
               </div>
 
               <div class="form-group">
-                <label>Update Password (leave blank to keep current)</label>
+                <label>New Password (leave blank to keep current)</label>
                 <input type="password" id="profileNewPass" class="form-control" placeholder="••••••••" minlength="4">
               </div>
 
               <button type="submit" class="btn-primary" style="width: 100%; margin-top: 1rem;">
-                Save Profile Information
+                Save Changes
               </button>
             </form>
           </div>
@@ -579,29 +579,29 @@
               <div class="stepper-points">
                 <div class="stepper-step ${stage.step >= 1 ? 'completed' : ''}">
                   <div class="step-dot">1</div>
-                  <span class="step-title">Pending Review</span>
+                  <span class="step-title">Inquiry Received</span>
                 </div>
                 <div class="stepper-step ${stage.step >= 2 ? 'completed' : ''}">
                   <div class="step-dot">2</div>
-                  <span class="step-title">Curator Assigned</span>
+                  <span class="step-title">In Review</span>
                 </div>
                 <div class="stepper-step ${stage.step >= 3 ? 'completed' : ''}">
                   <div class="step-dot">3</div>
-                  <span class="step-title">Pro-Forma Issued</span>
+                  <span class="step-title">Quote Sent</span>
                 </div>
                 <div class="stepper-step ${stage.step >= 4 ? 'completed' : ''}">
                   <div class="step-dot">4</div>
-                  <span class="step-title">Acquired & Archived</span>
+                  <span class="step-title">Completed</span>
                 </div>
               </div>
             </div>
 
             <div class="curator-response-box">
               <div style="font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent-gold); font-weight: 600; margin-bottom: 4px;">
-                Curatorial Directorate Advisory Note:
+                Message from Gallery Team:
               </div>
               <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 0;">
-                ${inq.curatorNotes || 'Your dossier is currently assigned to a senior gallery director. You will be contacted via email with complete condition reports and provenance records.'}
+                ${inq.curatorNotes || 'Your inquiry has been received. A member of our gallery team will reply by email with pricing and delivery options.'}
               </p>
             </div>
           </div>

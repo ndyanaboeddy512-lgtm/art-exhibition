@@ -19,10 +19,10 @@
       </a>
 
       <nav class="nav-desktop">
-        <a href="#exhibition" class="nav-link">Exhibition</a>
-        <a href="#catalog" class="nav-link active">Catalog</a>
-        <a href="#salon" class="nav-link">Private Viewing</a>
-        <a href="auth.html" class="nav-link">Collector Portal</a>
+        <a href="#exhibition" class="nav-link">Featured Art</a>
+        <a href="#catalog" class="nav-link active">Gallery</a>
+        <a href="#salon" class="nav-link">Book a Viewing</a>
+        <a href="auth.html" class="nav-link">My Account</a>
       </nav>
 
       <div class="header-tools">
@@ -33,13 +33,13 @@
         </div>
 
         <!-- Wishlist Button -->
-        <a href="auth.html#wishlist" class="wishlist-pill" title="Saved Collection">
+        <a href="auth.html#wishlist" class="wishlist-pill" title="Saved Artworks">
           <span>Saved</span>
           <span class="wishlist-badge" style="display: none;">0</span>
         </a>
 
         <!-- Curator Admin Route -->
-        <a href="admin.html" class="btn-curator-link" title="Curator Administration">Admin</a>
+        <a href="admin.html" class="btn-curator-link" title="Admin Dashboard">Admin</a>
 
         <!-- Mobile Hamburger Toggle -->
         <button class="mobile-menu-toggle" id="mobileMenuBtn" aria-label="Toggle Navigation Menu">
@@ -56,20 +56,20 @@
     <div class="mobile-nav-header">
       <div class="brand-logo">
         <span class="brand-name" style="color: #fff;">EDDY PRO</span>
-        <span class="brand-tagline" style="color: var(--accent-gold);">FINE ART & EDITIONS</span>
+        <span class="brand-tagline" style="color: var(--accent-gold);">FINE ART GALLERY</span>
       </div>
       <button class="mobile-nav-close" id="mobileNavClose" aria-label="Close Navigation">&times;</button>
     </div>
     <nav class="mobile-nav-links">
-      <a href="#exhibition" class="mobile-nav-link">Exhibition</a>
-      <a href="#catalog" class="mobile-nav-link">Curated Catalog</a>
-      <a href="#salon" class="mobile-nav-link">Private Viewing</a>
-      <a href="auth.html" class="mobile-nav-link">Collector Portal</a>
-      <a href="auth.html#wishlist" class="mobile-nav-link">Saved Collection</a>
-      <a href="admin.html" class="mobile-nav-link" style="color: var(--accent-gold);">Curator Directorate</a>
+      <a href="#exhibition" class="mobile-nav-link">Featured Art</a>
+      <a href="#catalog" class="mobile-nav-link">All Artworks</a>
+      <a href="#salon" class="mobile-nav-link">Book a Viewing</a>
+      <a href="auth.html" class="mobile-nav-link">My Account</a>
+      <a href="auth.html#wishlist" class="mobile-nav-link">Saved Artworks</a>
+      <a href="admin.html" class="mobile-nav-link" style="color: var(--accent-gold);">Admin Dashboard</a>
     </nav>
     <div class="mobile-nav-footer">
-      <span style="font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-inverse-muted);">Valuation Currency:</span>
+      <span style="font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-inverse-muted);">Display Currency:</span>
       <div class="currency-selector">
         <button class="currency-btn active" data-curr="USD">USD</button>
         <button class="currency-btn" data-curr="RWF">RWF</button>
@@ -85,43 +85,43 @@
           <!-- Dynamically populated from app.js / first featured artwork -->
           <div class="hero-visual">
             <div class="hero-image-wrapper" onclick="window.location.href='artwork.html?id=art-01'">
-              <span class="hero-visual-badge">Current Spotlight · 1-of-1 Original</span>
-              <img id="heroImage" src="images/art-01.jpg" alt="Hero Artwork">
+              <span class="hero-visual-badge">Featured Artwork · 1-of-1 Original</span>
+              <img id="heroImage" src="images/art-01.jpg" alt="Featured Artwork">
             </div>
           </div>
 
           <div class="hero-content">
-            <h1 class="hero-title" id="heroTitle">Nocturne en Terre d'Ombre</h1>
-            <div class="hero-artist" id="heroArtist">Éléonore Vance (b. 1984, Paris)</div>
+            <h1 class="hero-title" id="heroTitle">Night Shadows in Warm Earth</h1>
+            <div class="hero-artist" id="heroArtist">Eleanor Vance (2025)</div>
             <p class="hero-statement" id="heroStatement">
-              A masterwork of subtle atmospheric tension. Vance layers raw Moroccan earth pigments with slow-drying linseed, creating a velvety chiaroscuro surface that breathes under shifting natural daylight.
+              A stunning original painting featuring deep shadows and warm earth tones. Created with hand-mixed natural pigments on premium canvas.
             </p>
 
             <div class="hero-specs">
               <div class="spec-item">
                 <span class="spec-label">Medium</span>
-                <span class="spec-value" id="heroMedium">Oil & raw pigment on Belgian linen</span>
+                <span class="spec-value" id="heroMedium">Oil & natural earth pigments on canvas</span>
               </div>
               <div class="spec-item">
                 <span class="spec-label">Dimensions</span>
-                <span class="spec-value" id="heroDimensions">190 × 140 cm / 74.8 × 55.1 in</span>
+                <span class="spec-value" id="heroDimensions">190 × 140 cm / 75 × 55 in</span>
               </div>
               <div class="spec-item">
-                <span class="spec-label">Valuation</span>
+                <span class="spec-label">Price</span>
                 <span class="spec-value" id="heroPrice">$24,500</span>
               </div>
               <div class="spec-item">
                 <span class="spec-label">Status</span>
-                <span class="spec-value" style="color: var(--status-available);">● Available for Acquisition</span>
+                <span class="spec-value" style="color: var(--status-available);">● Available to Buy</span>
               </div>
             </div>
 
             <div class="hero-actions">
               <button class="btn-primary" id="heroInquireBtn" onclick="window.openInquiryModal('art-01')">
-                Inquire to Acquire
+                Ask About This Piece
               </button>
               <a href="artwork.html?id=art-01" class="btn-secondary" id="heroLoupeBtn">
-                Inspect with Loupe →
+                Zoom In & Details →
               </a>
             </div>
           </div>
@@ -134,22 +134,22 @@
       <div class="container">
         <div class="section-header">
           <div class="section-title-wrap">
-            <span class="tracking-wide" style="color: var(--accent-gold); display: block; margin-bottom: 0.5rem;">The Curated Gallery</span>
-            <h2>Permanent & Contemporary Catalog</h2>
-            <p class="section-subtitle">Exclusively unique original works accompanied by museum certification of authenticity.</p>
+            <span class="tracking-wide" style="color: var(--accent-gold); display: block; margin-bottom: 0.5rem;">Original Collection</span>
+            <h2>Explore Artworks for Sale</h2>
+            <p class="section-subtitle">Every piece is an authentic original. Includes a Certificate of Authenticity and safe insured delivery.</p>
           </div>
           <div style="font-size: 0.85rem; color: var(--text-muted);">
-            Displaying <span id="catalogCount">8</span> Pieces
+            Showing <span id="catalogCount">9</span> Artworks
           </div>
         </div>
 
         <!-- Filter & Search Toolbar -->
         <div class="filter-toolbar">
           <div class="filter-categories" id="filterCategories">
-            <button class="filter-chip active" data-category="all">All Disciplines</button>
-            <button class="filter-chip" data-category="oil">Oil on Canvas</button>
-            <button class="filter-chip" data-category="sculpture">Sculpture</button>
-            <button class="filter-chip" data-category="plaster">Plaster & Relief</button>
+            <button class="filter-chip active" data-category="all">All Artworks</button>
+            <button class="filter-chip" data-category="oil">Oil Paintings</button>
+            <button class="filter-chip" data-category="sculpture">Sculptures</button>
+            <button class="filter-chip" data-category="plaster">Wall Art & Plaster</button>
             <button class="filter-chip" data-category="mixed">Mixed Media</button>
           </div>
 
@@ -157,20 +157,20 @@
             <div class="filter-select-group">
               <label for="statusFilter">Status:</label>
               <select id="statusFilter" class="filter-select">
-                <option value="all">All Works</option>
-                <option value="Available">Available</option>
+                <option value="all">All Pieces</option>
+                <option value="Available">Available to Buy</option>
                 <option value="Reserved">Reserved</option>
-                <option value="Sold">Private Collection / Sold</option>
+                <option value="Sold">Sold</option>
               </select>
             </div>
 
             <div class="filter-select-group">
-              <label for="sortOrder">Sort:</label>
+              <label for="sortOrder">Sort By:</label>
               <select id="sortOrder" class="filter-select">
-                <option value="featured">Curator's Order</option>
+                <option value="featured">Featured First</option>
                 <option value="price-desc">Price: High to Low</option>
                 <option value="price-asc">Price: Low to High</option>
-                <option value="year-desc">Year: Newest</option>
+                <option value="year-desc">Year: Newest First</option>
               </select>
             </div>
           </div>
@@ -183,17 +183,17 @@
       </div>
     </section>
 
-    <!-- Private Salon & Advisory Banner -->
+    <!-- Private Consultation & Inquiries Banner -->
     <section class="hero-exhibition" id="salon" style="background: var(--bg-secondary); border-top: 1px solid var(--border-subtle);">
       <div class="container" style="text-align: center; max-width: 860px; padding: 5rem 1.5rem;">
-        <span class="tracking-wide" style="color: var(--accent-gold); display: block; margin-bottom: 1rem;">Private Acquisitions & Advisory</span>
-        <h2 style="font-size: clamp(2.4rem, 4vw, 3.4rem); font-weight: 300; margin-bottom: 1.5rem;">Bespoke Art Advisory for Discerning Patrons</h2>
+        <span class="tracking-wide" style="color: var(--accent-gold); display: block; margin-bottom: 1rem;">Art Consultation & Delivery</span>
+        <h2 style="font-size: clamp(2.4rem, 4vw, 3.4rem); font-weight: 300; margin-bottom: 1.5rem;">Personalized Service For Your Home & Office</h2>
         <p style="font-size: 1.05rem; line-height: 1.8; color: var(--text-secondary); margin-bottom: 2.5rem;">
-          Whether building an institutional collection or selecting a definitive centerpiece for an architectural residence, Eddy Pro offers confidential white-glove acquisitions, global museum crating, and private preview viewings in Paris and New York.
+          Looking for the perfect piece for your living space or corporate collection? Eddy Pro provides safe insured international delivery, custom framing options, and private preview viewings.
         </p>
         <div style="display: flex; gap: 1.25rem; justify-content: center; flex-wrap: wrap;">
-          <a href="auth.html" class="btn-primary">Register Collector Profile</a>
-          <button class="btn-secondary" onclick="window.openInquiryModal('art-01')">Request Curatorial Appointment</button>
+          <a href="auth.html" class="btn-primary">Create Free Account</a>
+          <button class="btn-secondary" onclick="window.openInquiryModal('art-01')">Book a Private Viewing</button>
         </div>
       </div>
     </section>
@@ -203,7 +203,7 @@
   <div class="drawer-backdrop" id="quickViewDrawer">
     <div class="drawer-slideover">
       <div style="padding: 1.5rem 2rem; border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between;">
-        <span class="tracking-wide" style="color: var(--accent-gold);">Artwork Dossier</span>
+        <span class="tracking-wide" style="color: var(--accent-gold);">Artwork Details</span>
         <button class="modal-close-btn" onclick="window.closeQuickView()">&times;</button>
       </div>
 
@@ -232,13 +232,13 @@
         <p id="qvStatement" style="line-height: 1.7; color: var(--text-secondary); margin-bottom: 2rem;">Statement</p>
 
         <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 2rem;">
-          <span style="font-size: 0.8rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted);">Current Valuation</span>
+          <span style="font-size: 0.8rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted);">Price</span>
           <span id="qvPrice" style="font-size: 1.75rem; font-weight: 500;">$0</span>
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 0.85rem;">
-          <button id="qvInquireBtn" class="btn-primary" style="width: 100%;">Inquire to Acquire</button>
-          <a id="qvDeepLink" href="artwork.html" class="btn-secondary" style="width: 100%; text-align: center;">Full Loupe & Room Visualizer →</a>
+          <button id="qvInquireBtn" class="btn-primary" style="width: 100%;">Ask About This Piece</button>
+          <a id="qvDeepLink" href="artwork.html" class="btn-secondary" style="width: 100%; text-align: center;">Zoom In & Room View →</a>
         </div>
       </div>
     </div>
@@ -249,9 +249,9 @@
     <div class="modal-card">
       <div class="modal-header">
         <div>
-          <span class="tracking-wide" style="color: var(--accent-gold); display: block; margin-bottom: 4px;">Acquisition Dossier</span>
-          <h3>Private Inquiry & Reservation</h3>
-          <p>Direct communication with the Eddy Pro Curatorial Directorate.</p>
+          <span class="tracking-wide" style="color: var(--accent-gold); display: block; margin-bottom: 4px;">Direct Inquiry</span>
+          <h3>Ask About This Artwork</h3>
+          <p>Contact our gallery team directly for purchase, framing options, or delivery details.</p>
         </div>
         <button class="modal-close-btn" onclick="window.closeInquiryModal()">&times;</button>
       </div>
@@ -275,18 +275,18 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label for="inquiryName">Collector Name *</label>
-              <input type="text" id="inquiryName" class="form-control" placeholder="Lord / Lady / Dr. / Full Name" required>
+              <label for="inquiryName">Your Full Name *</label>
+              <input type="text" id="inquiryName" class="form-control" placeholder="e.g. John Smith" required>
             </div>
             <div class="form-group">
-              <label for="inquiryEmail">Email Address *</label>
-              <input type="email" id="inquiryEmail" class="form-control" placeholder="collector@residence.com" required>
+              <label for="inquiryEmail">Your Email Address *</label>
+              <input type="email" id="inquiryEmail" class="form-control" placeholder="name@email.com" required>
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
-              <label for="inquiryPhone">Telephone / WhatsApp</label>
+              <label for="inquiryPhone">Phone Number (Optional)</label>
               <input type="tel" id="inquiryPhone" class="form-control" placeholder="+1 (212) 555-0199">
             </div>
             <div class="form-group">
@@ -298,70 +298,70 @@
           </div>
 
           <div class="form-group">
-            <label for="inquiryNotes">Inquiry Details or White-Glove Shipping Destination</label>
-            <textarea id="inquiryNotes" class="form-control" placeholder="Specify if you require international courier condition reports, residential installation advisory, or high-res studio provenance scans."></textarea>
+            <label for="inquiryNotes">Questions or Delivery Location</label>
+            <textarea id="inquiryNotes" class="form-control" placeholder="Let us know your city or country for delivery, or any questions about framing and viewing."></textarea>
           </div>
 
           <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 2rem;">
-            <span style="font-size: 0.75rem; color: var(--text-muted);">Confidential & Protected by Eddy Pro Curatorial Trust</span>
-            <button type="submit" class="btn-primary">Transmit Acquisition Dossier</button>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Your information is safe and never shared.</span>
+            <button type="submit" class="btn-primary">Send Inquiry</button>
           </div>
         </form>
       </div>
     </div>
   </div>
 
-  <!-- Editorial Luxury Footer -->
+  <!-- Simple Clean Footer -->
   <footer class="site-footer">
     <div class="container">
       <div class="footer-grid">
         <div class="footer-col">
           <h4 style="letter-spacing: 0.12em;">EDDY PRO</h4>
           <p style="margin-bottom: 1.5rem;">
-            An editorial luxury gallery committed to extraordinary 1-of-1 contemporary originals, architectural sculptures, and masterwork editions.
+            An original art gallery dedicated to unique contemporary paintings, modern sculptures, and authentic works.
           </p>
           <div style="font-size: 0.82rem; color: var(--text-inverse-muted);">
-            Paris: 8 Rue de Bellechasse, 75007<br>
-            New York: 524 West 24th Street, Chelsea
+            London · New York · Paris<br>
+            Direct inquiries: contact@eddypro.com
           </div>
         </div>
 
         <div class="footer-col">
           <h4>Navigation</h4>
           <ul class="footer-links">
-            <li><a href="#exhibition">Current Exhibition</a></li>
-            <li><a href="#catalog">Full Catalog</a></li>
-            <li><a href="auth.html">Collector Portal</a></li>
-            <li><a href="admin.html">Curator Administration</a></li>
+            <li><a href="#exhibition">Featured Art</a></li>
+            <li><a href="#catalog">All Artworks</a></li>
+            <li><a href="auth.html">My Account</a></li>
+            <li><a href="admin.html">Admin Dashboard</a></li>
           </ul>
         </div>
 
         <div class="footer-col">
           <h4>Services</h4>
           <ul class="footer-links">
-            <li><a href="#salon">Private Art Advisory</a></li>
-            <li><a href="#salon">Bespoke Framing</a></li>
-            <li><a href="#salon">Museum White-Glove Freight</a></li>
-            <li><a href="#salon">Authenticity Certification</a></li>
+            <li><a href="#salon">Art Consultation</a></li>
+            <li><a href="#salon">Custom Framing</a></li>
+            <li><a href="#salon">Insured Worldwide Delivery</a></li>
+            <li><a href="#salon">Certificate of Authenticity</a></li>
           </ul>
         </div>
 
         <div class="footer-col">
-          <h4>Curator's Dispatch</h4>
-          <p>Receive confidential previews of unreleased contemporary works before public cataloguing.</p>
-          <form class="newsletter-form" onsubmit="event.preventDefault(); alert('You have been subscribed to the private Eddy Pro Curator Dispatch.'); this.reset();">
+          <h4>Newsletter</h4>
+          <p>Get notified when new original artworks and exhibitions are released.</p>
+          <form class="newsletter-form" onsubmit="event.preventDefault(); alert('Thank you for subscribing to Eddy Pro updates.'); this.reset();">
             <input type="email" class="newsletter-input" placeholder="Your email address" required>
-            <button type="submit" class="newsletter-submit">Join</button>
+            <button type="submit" class="newsletter-submit">Subscribe</button>
           </form>
         </div>
       </div>
 
       <div class="footer-bottom">
-        <div>&copy; 2026 EDDY PRO FINE ART GALLERY. All Rights Reserved.</div>
+        <div>&copy; 2026 EDDY PRO FINE ART. All Rights Reserved.</div>
         <div style="display: flex; gap: 2rem;">
-          <a href="#" style="color: var(--text-inverse-muted);">Provenance Protocol</a>
-          <a href="#" style="color: var(--text-inverse-muted);">Terms of Acquisition</a>
-          <a href="#" style="color: var(--text-inverse-muted);">Privacy Charter</a>
+          <a href="#" style="color: var(--text-inverse-muted);">Authenticity Guarantee</a>
+          <a href="#" style="color: var(--text-inverse-muted);">Terms of Service</a>
+          <a href="#" style="color: var(--text-inverse-muted);">Privacy Policy</a>
         </div>
       </div>
     </div>
@@ -464,11 +464,11 @@
           <article class="artwork-card" data-id="${art.id}">
             <div class="artwork-image-container">
               <div class="card-badges">
-                <span class="status-badge ${statusClass}">${art.status === 'Sold' ? 'Private Collection' : art.status}</span>
+                <span class="status-badge ${statusClass}">${art.status === 'Sold' ? 'Sold' : art.status}</span>
               </div>
 
               <button class="btn-favorite-heart ${isFav ? 'active' : ''}" 
-                      title="${isFav ? 'Remove from Saved' : 'Save to Collection'}"
+                      title="${isFav ? 'Remove from Saved' : 'Save to Favorites'}"
                       onclick="event.stopPropagation(); handleWishlistToggle('${art.id}', this)">
                 ${isFav ? '♥' : '♡'}
               </button>
@@ -477,7 +477,7 @@
 
               <div class="artwork-hover-overlay" onclick="window.location.href='artwork.html?id=${art.id}'">
                 <button class="btn-quick-inspect" onclick="event.stopPropagation(); window.openQuickView('${art.id}')">Quick View</button>
-                <button class="btn-quick-inspect" onclick="event.stopPropagation(); window.location.href='artwork.html?id=${art.id}'">Inspect Loupe</button>
+                <button class="btn-quick-inspect" onclick="event.stopPropagation(); window.location.href='artwork.html?id=${art.id}'">Zoom In</button>
               </div>
             </div>
 
@@ -492,7 +492,7 @@
                 <span class="artwork-price">${EddyStore.formatPrice(art.price)}</span>
                 ${art.status === 'Available' 
                   ? `<button class="artwork-inquire-link" onclick="window.openInquiryModal('${art.id}')">Inquire &rarr;</button>`
-                  : `<span style="font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted);">${art.status === 'Sold' ? 'Acquired' : 'Reserved'}</span>`
+                  : `<span style="font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted);">${art.status}</span>`
                 }
               </div>
             </div>
@@ -505,7 +505,7 @@
       const active = EddyStore.toggleWishlist(id);
       btn.classList.toggle('active', active);
       btn.innerHTML = active ? '♥' : '♡';
-      btn.title = active ? 'Remove from Saved' : 'Save to Collection';
+      btn.title = active ? 'Remove from Saved' : 'Save to Favorites';
     }
 
     // Reactive event listeners for real-time catalog syncing

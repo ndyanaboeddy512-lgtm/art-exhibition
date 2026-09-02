@@ -19,10 +19,10 @@
       </a>
 
       <nav class="nav-desktop">
-        <a href="index.html#exhibition" class="nav-link">Exhibition</a>
-        <a href="index.html#catalog" class="nav-link active">Catalog</a>
-        <a href="index.html#salon" class="nav-link">Private Viewing</a>
-        <a href="auth.html" class="nav-link">Collector Portal</a>
+        <a href="index.html#exhibition" class="nav-link">Featured Art</a>
+        <a href="index.html#catalog" class="nav-link active">Gallery</a>
+        <a href="index.html#salon" class="nav-link">Book a Viewing</a>
+        <a href="auth.html" class="nav-link">My Account</a>
       </nav>
 
       <div class="header-tools">
@@ -31,12 +31,12 @@
           <button class="currency-btn" data-curr="RWF">RWF</button>
         </div>
 
-        <a href="auth.html#wishlist" class="wishlist-pill" title="Saved Collection">
+        <a href="auth.html#wishlist" class="wishlist-pill" title="Saved Artworks">
           <span>Saved</span>
           <span class="wishlist-badge" style="display: none;">0</span>
         </a>
 
-        <a href="admin.html" class="btn-curator-link">Curator</a>
+        <a href="admin.html" class="btn-curator-link">Admin</a>
 
         <!-- Mobile Hamburger Toggle -->
         <button class="mobile-menu-toggle" id="mobileMenuBtn" aria-label="Toggle Navigation Menu">
@@ -53,20 +53,20 @@
     <div class="mobile-nav-header">
       <div class="brand-logo">
         <span class="brand-name" style="color: #fff;">EDDY PRO</span>
-        <span class="brand-tagline" style="color: var(--accent-gold);">FINE ART & EDITIONS</span>
+        <span class="brand-tagline" style="color: var(--accent-gold);">FINE ART GALLERY</span>
       </div>
       <button class="mobile-nav-close" id="mobileNavClose" aria-label="Close Navigation">&times;</button>
     </div>
     <nav class="mobile-nav-links">
-      <a href="index.html#exhibition" class="mobile-nav-link">Exhibition</a>
-      <a href="index.html#catalog" class="mobile-nav-link">Curated Catalog</a>
-      <a href="index.html#salon" class="mobile-nav-link">Private Viewing</a>
-      <a href="auth.html" class="mobile-nav-link">Collector Portal</a>
-      <a href="auth.html#wishlist" class="mobile-nav-link">Saved Collection</a>
-      <a href="admin.html" class="mobile-nav-link" style="color: var(--accent-gold);">Curator Directorate</a>
+      <a href="index.html#exhibition" class="mobile-nav-link">Featured Art</a>
+      <a href="index.html#catalog" class="mobile-nav-link">All Artworks</a>
+      <a href="index.html#salon" class="mobile-nav-link">Book a Viewing</a>
+      <a href="auth.html" class="mobile-nav-link">My Account</a>
+      <a href="auth.html#wishlist" class="mobile-nav-link">Saved Artworks</a>
+      <a href="admin.html" class="mobile-nav-link" style="color: var(--accent-gold);">Admin Dashboard</a>
     </nav>
     <div class="mobile-nav-footer">
-      <span style="font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-inverse-muted);">Valuation Currency:</span>
+      <span style="font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-inverse-muted);">Display Currency:</span>
       <div class="currency-selector">
         <button class="currency-btn active" data-curr="USD">USD</button>
         <button class="currency-btn" data-curr="RWF">RWF</button>
@@ -79,11 +79,11 @@
       
       <!-- Breadcrumb Navigation -->
       <nav class="detail-breadcrumb">
-        <a href="index.html">Galerie</a>
+        <a href="index.html">Home</a>
         <span>/</span>
-        <a href="index.html#catalog">Catalog</a>
+        <a href="index.html#catalog">Gallery</a>
         <span>/</span>
-        <span id="breadcrumbTitle" style="color: var(--text-primary);">Artwork Dossier</span>
+        <span id="breadcrumbTitle" style="color: var(--text-primary);">Artwork</span>
       </nav>
 
       <div class="detail-grid">
@@ -95,13 +95,13 @@
           <div class="viewer-mode-bar">
             <div class="view-mode-tabs">
               <button class="view-mode-btn active" id="btnModeStudio" onclick="switchViewerMode('studio')">
-                Studio Loupe Zoom
+                Zoom Magnifier
               </button>
               <button class="view-mode-btn" id="btnModeRoom" onclick="switchViewerMode('room')">
-                View in Room
+                See on Wall
               </button>
             </div>
-            <span class="zoom-hint" id="viewerHint">Hover or drag to examine texture & brushwork</span>
+            <span class="zoom-hint" id="viewerHint">Hover or touch to inspect texture and details</span>
           </div>
 
           <!-- Studio Inspection Canvas Stage -->
@@ -109,7 +109,7 @@
             <div class="framed-artwork-wrapper frame-charcoal-oak" id="framedWrapper">
               <div class="framed-inner-shadow">
                 <div class="canvas-image-wrap" id="loupeTargetWrap">
-                  <img id="detailMainImage" src="" alt="Masterpiece Artwork">
+                  <img id="detailMainImage" src="" alt="Artwork">
                   <!-- The Optical Magnifying Loupe Lens -->
                   <div class="loupe-lens" id="loupeLens"></div>
                 </div>
@@ -120,27 +120,27 @@
           <!-- Room Simulator Stage (Hidden by default) -->
           <div class="room-simulator-stage" id="roomStage">
             <div class="room-wall-artwork" id="roomArtwork">
-              <img id="roomArtworkImg" src="" alt="Artwork on Gallery Wall">
+              <img id="roomArtworkImg" src="" alt="Artwork on Wall">
             </div>
             <div class="room-bench"></div>
-            <span class="room-scale-tag">Architectural Gallery Wall · 3.5m Ceiling Scale</span>
+            <span class="room-scale-tag">Gallery Wall · 3.5m Ceiling Scale View</span>
           </div>
 
           <!-- Framing Selector Controls -->
           <div class="framing-controls">
-            <div class="framing-controls-label">Interactive Bespoke Framing Visualizer</div>
+            <div class="framing-controls-label">Choose a Frame Style</div>
             <div class="frame-options-grid">
               <button class="frame-btn active" data-frame="charcoal-oak" onclick="changeFrame('charcoal-oak')">
-                Floating Charcoal Oak
+                Black Oak Frame
               </button>
               <button class="frame-btn" data-frame="gilded-brass" onclick="changeFrame('gilded-brass')">
-                Brushed Gilded Brass
+                Gold Brass Frame
               </button>
               <button class="frame-btn" data-frame="natural-maple" onclick="changeFrame('natural-maple')">
-                Natural Maple
+                Natural Maple Frame
               </button>
               <button class="frame-btn" data-frame="unframed" onclick="changeFrame('unframed')">
-                Raw Canvas Edge
+                Unframed Edge
               </button>
             </div>
           </div>
@@ -154,19 +154,19 @@
 
           <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
             <span id="detailStatusBadge" class="status-badge available">Available</span>
-            <span style="font-size: 0.8rem; color: var(--text-muted); font-style: italic;">Original 1-of-1 Work</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted); font-style: italic;">Original 1-of-1 Artwork</span>
           </div>
 
           <!-- Price Box -->
           <div class="detail-price-box">
             <div>
-              <span class="spec-label">Direct Studio Valuation</span>
+              <span class="spec-label">Price</span>
               <div class="detail-price" id="detailPrice">$0</div>
             </div>
             <div style="text-align: right;">
               <span class="spec-label">Framing Status</span>
               <div style="font-size: 0.88rem; font-weight: 500; color: var(--text-primary);" id="detailFramingIncluded">
-                Museum Tray Frame Included
+                Custom Frame Included
               </div>
             </div>
           </div>
@@ -174,22 +174,22 @@
           <!-- Acquisition Actions -->
           <div class="detail-actions">
             <button class="btn-primary btn-inquire-main" id="btnDetailInquire">
-              Inquire to Acquire / Reserve Piece
+              Ask About This Piece / Buy
             </button>
             <button class="btn-secondary" id="btnDetailWishlist">
-              ♡ Save to Private Collection
+              ♡ Save to Favorites
             </button>
           </div>
 
           <!-- Key Specifications Grid -->
           <div class="hero-specs" style="margin-bottom: 2rem;">
             <div class="spec-item">
-              <span class="spec-label">Year of Execution</span>
+              <span class="spec-label">Year Created</span>
               <span class="spec-value" id="detailYear">2025</span>
             </div>
             <div class="spec-item">
               <span class="spec-label">Medium</span>
-              <span class="spec-value" id="detailMedium">Oil on Linen</span>
+              <span class="spec-value" id="detailMedium">Oil on Canvas</span>
             </div>
             <div class="spec-item">
               <span class="spec-label">Dimensions</span>
@@ -197,7 +197,7 @@
             </div>
             <div class="spec-item">
               <span class="spec-label">Authenticity</span>
-              <span class="spec-value" style="color: var(--accent-gold);">Signed & Sealed Archive</span>
+              <span class="spec-value" style="color: var(--accent-gold);">100% Original & Signed</span>
             </div>
           </div>
 
@@ -206,31 +206,31 @@
             
             <div class="accordion-item open">
               <button class="accordion-trigger">
-                <span>Curatorial Statement</span>
+                <span>About This Artwork</span>
                 <span>+</span>
               </button>
               <div class="accordion-content" id="detailStatement">
-                Curatorial essay text...
+                Description text...
               </div>
             </div>
 
             <div class="accordion-item">
               <button class="accordion-trigger">
-                <span>Provenance & Exhibition History</span>
+                <span>Origin & Certificate of Authenticity</span>
                 <span>+</span>
               </button>
               <div class="accordion-content" id="detailProvenance">
-                Provenance history text...
+                History text...
               </div>
             </div>
 
             <div class="accordion-item">
               <button class="accordion-trigger">
-                <span>Museum White-Glove Shipping & Warranty</span>
+                <span>Safe Shipping & Delivery Guarantee</span>
                 <span>+</span>
               </button>
               <div class="accordion-content">
-                Every original piece acquired through Eddy Pro is packed in a custom-built, museum-grade, climate-stabilized wooden crate. Delivered via dedicated fine-art couriers with door-to-door insurance and white-glove uncrating/installation. Includes an embossed Certificate of Authenticity registered in our permanent salon ledger.
+                Every original artwork from Eddy Pro is packed in a custom protective wooden crate and delivered with full transit insurance. Includes a signed Certificate of Authenticity from the artist and gallery.
               </div>
             </div>
 
@@ -248,9 +248,9 @@
     <div class="modal-card">
       <div class="modal-header">
         <div>
-          <span class="tracking-wide" style="color: var(--accent-gold); display: block; margin-bottom: 4px;">Acquisition Dossier</span>
-          <h3>Private Inquiry & Reservation</h3>
-          <p>Direct communication with the Eddy Pro Curatorial Directorate.</p>
+          <span class="tracking-wide" style="color: var(--accent-gold); display: block; margin-bottom: 4px;">Direct Inquiry</span>
+          <h3>Ask About This Artwork</h3>
+          <p>Contact our gallery team directly for purchase, framing options, or delivery details.</p>
         </div>
         <button class="modal-close-btn" onclick="window.closeInquiryModal()">&times;</button>
       </div>
@@ -274,36 +274,36 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label for="inquiryName">Collector Name *</label>
-              <input type="text" id="inquiryName" class="form-control" placeholder="Lord / Lady / Dr. / Full Name" required>
+              <label for="inquiryName">Your Full Name *</label>
+              <input type="text" id="inquiryName" class="form-control" placeholder="e.g. John Smith" required>
             </div>
             <div class="form-group">
-              <label for="inquiryEmail">Email Address *</label>
-              <input type="email" id="inquiryEmail" class="form-control" placeholder="collector@residence.com" required>
+              <label for="inquiryEmail">Your Email Address *</label>
+              <input type="email" id="inquiryEmail" class="form-control" placeholder="name@email.com" required>
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
-              <label for="inquiryPhone">Telephone / WhatsApp</label>
+              <label for="inquiryPhone">Phone Number (Optional)</label>
               <input type="tel" id="inquiryPhone" class="form-control" placeholder="+1 (212) 555-0199">
             </div>
             <div class="form-group">
               <label for="inquiryFraming">Framing Preference</label>
               <select id="inquiryFraming" class="form-control">
-                <!-- Dynamically populated -->
+                <!-- Dynamically filled -->
               </select>
             </div>
           </div>
 
           <div class="form-group">
-            <label for="inquiryNotes">Inquiry Details or White-Glove Shipping Destination</label>
-            <textarea id="inquiryNotes" class="form-control" placeholder="Specify if you require international courier condition reports, residential installation advisory, or high-res studio provenance scans."></textarea>
+            <label for="inquiryNotes">Questions or Delivery Location</label>
+            <textarea id="inquiryNotes" class="form-control" placeholder="Let us know your city or country for delivery, or any questions about framing and viewing."></textarea>
           </div>
 
           <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 2rem;">
-            <span style="font-size: 0.75rem; color: var(--text-muted);">Confidential & Protected by Eddy Pro Curatorial Trust</span>
-            <button type="submit" class="btn-primary">Transmit Acquisition Dossier</button>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Your information is safe and never shared.</span>
+            <button type="submit" class="btn-primary">Send Inquiry</button>
           </div>
         </form>
       </div>
