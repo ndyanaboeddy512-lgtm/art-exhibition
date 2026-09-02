@@ -92,4 +92,4 @@ artgalley/
 ---
 
 ## License
-MIT License. Crafted for **Eddy Pro — Fine Art & Curated Editions**.
+MIT License. Crafted by **Eddy Pro — Fine Art & Curated Editions**.
