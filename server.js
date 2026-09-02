@@ -27,13 +27,12 @@ if (!fs.existsSync(DATA_DIR)) {
 function readJSON(file, fallback = []) {
   try {
     if (!fs.existsSync(file)) {
-      fs.writeFileSync(file, JSON.stringify(fallback, null, 2), 'utf-8');
       return fallback;
     }
     const data = fs.readFileSync(file, 'utf-8');
     return JSON.parse(data);
   } catch (err) {
-    console.error(`Error reading ${file}:`, err);
+    console.warn(`Notice reading ${file}:`, err.message);
     return fallback;
   }
 }
@@ -43,7 +42,7 @@ function writeJSON(file, data) {
     fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf-8');
     return true;
   } catch (err) {
-    console.error(`Error writing ${file}:`, err);
+    console.warn(`Filesystem write notice (read-only environment or Vercel):`, err.message);
     return false;
   }
 }
@@ -444,5 +443,10 @@ function startServer(portToTry) {
   });
 }
 
-startServer(PORT);
+// In standard Node environment, start the listener. In Vercel serverless, export the app handler.
+if (!process.env.VERCEL) {
+  startServer(PORT);
+}
+
+module.exports = app;
 
