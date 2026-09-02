@@ -1,0 +1,23 @@
+{
+  "name": "eddy-pro-art-gallery",
+  "version": "1.0.0",
+  "description": "Editorial Luxury Art Gallery & Curated Exhibition Platform",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^4.22.2"
+  },
+  "keywords": [
+    "art-gallery",
+    "fine-art",
+    "editorial-luxury",
+    "curated-catalog"
+  ],
+  "author": "Eddy Pro",
+  "license": "MIT"
+}

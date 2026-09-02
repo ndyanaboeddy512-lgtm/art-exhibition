@@ -1,0 +1,60 @@
+[
+  {
+    "id": "usr-1",
+    "name": "Lord Alistair Sterling",
+    "email": "a.sterling@mayfairholdings.co.uk",
+    "password": "password123",
+    "tier": "Patron of the Arts",
+    "phone": "+44 20 7946 0912",
+    "address": "14 Berkeley Square, Mayfair, London W1J 6ER",
+    "wishlist": [
+      "art-01",
+      "art-04"
+    ]
+  },
+  {
+    "id": "usr-2",
+    "name": "Lady Genevieve de Montmirail",
+    "email": "genevieve@manor.fr",
+    "password": "password123",
+    "tier": "Private Collector",
+    "phone": "+33 1 42 68 55 00",
+    "address": "Château de Montmirail, 75008 Paris, France",
+    "wishlist": [
+      "art-01"
+    ]
+  },
+  {
+    "id": "usr-3",
+    "name": "Margaux Delacroix",
+    "email": "margaux.delacroix@artcapital.fr",
+    "password": "password123",
+    "tier": "Founding Patron",
+    "phone": "+33 6 55 58 41 90",
+    "address": "22 Quai d'Anjou, Île Saint-Louis, Paris",
+    "wishlist": [
+      "art-02",
+      "art-06"
+    ]
+  },
+  {
+    "id": "usr-1788372158066",
+    "name": "Baroness Camille Dupont",
+    "email": "camille.dupont@artcollection.ch",
+    "password": "patron2026",
+    "tier": "Collector Member",
+    "wishlist": [],
+    "role": "collector",
+    "phone": "+41 22 730 0110",
+    "address": "Geneva Fine Arts Residence, Switzerland"
+  },
+  {
+    "id": "usr-1788372767639",
+    "name": "matt",
+    "email": "matt@gmail.com",
+    "password": "12345678",
+    "tier": "Collector Member",
+    "wishlist": [],
+    "role": "collector"
+  }
+]

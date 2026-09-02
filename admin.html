@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EDDY PRO — Curator Administration & Inventory Control</title>
+  <meta name="description" content="Protected curatorial control center for adding, updating, and removing artwork products, managing pricing, framing, and acquisition pipelines.">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
+  <style>
+    /* Admin specific toast notifications & badge styles */
+    .admin-toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: #1E1D1B;
+      border: 1px solid var(--accent-gold);
+      color: #fff;
+      padding: 1rem 1.5rem;
+      border-radius: 4px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.85rem;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .admin-toast.active {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    .admin-nav-tabs {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--border-dark);
+      padding-bottom: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .admin-tab-btn {
+      color: var(--text-inverse-muted);
+      font-size: 0.82rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    .admin-tab-btn:hover {
+      color: #fff;
+    }
+    .admin-tab-btn.active {
+      background: rgba(194, 165, 126, 0.15);
+      color: var(--accent-gold);
+      border: 1px solid var(--accent-gold);
+    }
+  </style>
+</head>
+<body class="admin-body">
+
+  <!-- Admin Site Header -->
+  <header class="site-header admin-header">
+    <div class="container header-inner">
+      <a href="index.html" class="brand-logo">
+        <span class="brand-name" style="color: #fff;">EDDY PRO</span>
+        <span class="brand-tagline" style="color: var(--accent-gold);">CURATORIAL DIRECTORATE</span>
+      </a>
+
+      <div class="header-tools">
+        <a href="index.html" class="btn-secondary" style="color: #fff; border-color: rgba(255,255,255,0.2); font-size: 0.75rem; padding: 6px 14px;">
+          ← View Public Gallery
+        </a>
+        <button id="adminSettingsBtn" class="btn-secondary" style="color: var(--accent-gold); border-color: var(--border-gold); font-size: 0.75rem; padding: 6px 14px; display: none;">
+          Admin Security
+        </button>
+        <button id="adminLogoutBtn" class="btn-secondary" style="color: #ff6b6b; border-color: rgba(255,107,107,0.3); font-size: 0.75rem; padding: 6px 14px; display: none;">
+          Sign Out
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main style="padding: 2.5rem 0 5rem;">
+    <div class="container">
+
+      <!-- Admin Login Gate -->
+      <div id="adminAuthSection" style="max-width: 460px; margin: 3rem auto;">
+        
+        <div class="demo-credentials-banner" style="background: rgba(194, 165, 126, 0.15); border-color: var(--accent-gold); color: #fff;">
+          <div>
+            <strong style="font-size: 0.85rem; color: #fff;">Curator Master Credentials:</strong>
+            <p style="color: #ccc; font-size: 0.8rem;"><code>admin@eddypro.com</code> · <code>curator2026</code></p>
+          </div>
+          <button class="btn-fill-demo" id="btnFillCuratorDemo">Auto-Fill</button>
+        </div>
+
+        <div style="background: #181716; border: 1px solid var(--border-dark); padding: 2.5rem; border-radius: 2px; box-shadow: var(--shadow-luxury);">
+          <div style="text-align: center; margin-bottom: 2rem;">
+            <span class="tracking-wide" style="color: var(--accent-gold);">Directorate Portal</span>
+            <h2 style="font-size: 2rem; color: #fff; margin-top: 4px;">Curator Login</h2>
+            <p style="color: var(--text-inverse-muted); font-size: 0.88rem;">Sign in to add, edit, and update products, prices, and acquisition inquiries.</p>
+          </div>
+
+          <form id="adminLoginForm">
+            <div class="form-group">
+              <label for="adminEmail" style="color: #ccc;">Curator Email Address</label>
+              <input type="email" id="adminEmail" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark);" placeholder="admin@eddypro.com" required>
+            </div>
+            <div class="form-group">
+              <label for="adminPassword" style="color: #ccc;">Password</label>
+              <input type="password" id="adminPassword" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark);" placeholder="••••••••" required>
+            </div>
+
+            <div id="adminLoginError" style="display: none; color: #ff6b6b; font-size: 0.82rem; margin-bottom: 1rem; text-align: center;">
+              Invalid credentials. Use the auto-fill button above to log in instantly.
+            </div>
+
+            <button type="submit" class="btn-primary" style="width: 100%; margin-top: 0.5rem; background: var(--accent-gold); border-color: var(--accent-gold);">
+              Unlock Curator Dashboard
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Admin Dashboard Section (Protected) -->
+      <div id="adminDashboardSection" style="display: none;">
+        
+        <!-- Tab Navigation -->
+        <div class="admin-nav-tabs">
+          <button class="admin-tab-btn active" id="tabInventoryBtn" onclick="AdminApp.switchTab('inventory')">
+            Artworks & Inventory Catalog
+          </button>
+          <button class="admin-tab-btn" id="tabInquiriesBtn" onclick="AdminApp.switchTab('inquiries')">
+            Acquisitions & Inquiries Pipeline
+          </button>
+          <button class="admin-tab-btn" id="tabSecurityBtn" onclick="AdminApp.switchTab('security')">
+            Admin Profile & Security
+          </button>
+        </div>
+
+        <!-- KPI Metrics Grid -->
+        <div class="admin-stats-grid">
+          <div class="admin-stat-card">
+            <span class="stat-label">Available Catalog Valuation</span>
+            <span class="stat-number" id="statCatalogValue" style="color: var(--accent-gold);">$0</span>
+          </div>
+          <div class="admin-stat-card">
+            <span class="stat-label">Total Curated Artworks</span>
+            <span class="stat-number" id="statTotalArtworks">0</span>
+          </div>
+          <div class="admin-stat-card">
+            <span class="stat-label">Pending Buyer Inquiries</span>
+            <span class="stat-number" id="statPendingInquiries" style="color: #ffb74d;">0</span>
+          </div>
+          <div class="admin-stat-card">
+            <span class="stat-label">Acquired / Sold Pieces</span>
+            <span class="stat-number" id="statSoldCount">0</span>
+          </div>
+        </div>
+
+        <!-- VIEW 1: Inventory Catalog Management -->
+        <div id="viewInventorySection" class="admin-panel-card">
+          <div class="admin-panel-header">
+            <div>
+              <h3>Inventory Catalog & Product Control</h3>
+              <p style="color: var(--text-inverse-muted); font-size: 0.85rem;">
+                Add new original pieces, update prices and dimensions, toggle live availability, or remove pieces from the public gallery.
+              </p>
+            </div>
+            <div style="display: flex; gap: 0.85rem; align-items: center; flex-wrap: wrap;">
+              <input type="text" id="inventorySearch" class="form-control" style="width: 200px; padding: 6px 12px; font-size: 0.82rem; background: #121211; color: #fff; border-color: var(--border-dark);" placeholder="Search title, artist...">
+              <select id="inventoryStatusFilter" class="form-control" style="width: 130px; padding: 6px 10px; font-size: 0.82rem; background: #121211; color: #fff; border-color: var(--border-dark);">
+                <option value="all">All Statuses</option>
+                <option value="Available">Available</option>
+                <option value="Reserved">Reserved</option>
+                <option value="Sold">Sold</option>
+              </select>
+              <button class="btn-primary" style="background: var(--accent-gold); border-color: var(--accent-gold); padding: 8px 18px; font-size: 0.75rem;" onclick="AdminApp.openAddArtworkModal()">
+                + Catalog New Artwork
+              </button>
+            </div>
+          </div>
+
+          <div style="overflow-x: auto;">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Visual</th>
+                  <th>Title / ID</th>
+                  <th>Artist / Year</th>
+                  <th>Medium & Dimensions</th>
+                  <th>Valuation</th>
+                  <th>Status Toggle</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="inventoryTableBody">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- VIEW 2: Acquisition Inquiries Pipeline -->
+        <div id="viewInquiriesSection" class="admin-panel-card" style="display: none;">
+          <div class="admin-panel-header">
+            <div>
+              <h3>Collector Inquiries & Acquisition Pipeline</h3>
+              <p style="color: var(--text-inverse-muted); font-size: 0.85rem;">Track incoming client dossiers, update deal status, and log private curatorial notes.</p>
+            </div>
+          </div>
+
+          <div style="overflow-x: auto;">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Inquiry Ref / Date</th>
+                  <th>Artwork Inquired</th>
+                  <th>Collector Contact</th>
+                  <th>Inquiry Notes</th>
+                  <th>Pipeline Status</th>
+                  <th>Curator Log</th>
+                </tr>
+              </thead>
+              <tbody id="inquiriesTableBody">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- VIEW 3: Admin Profile & Security Settings -->
+        <div id="viewSecuritySection" class="admin-panel-card" style="display: none; padding: 2.5rem; max-width: 650px; margin: 0 auto 3rem;">
+          <div style="margin-bottom: 2rem;">
+            <span class="tracking-wide" style="color: var(--accent-gold);">Security & Access</span>
+            <h3 style="color: #fff; font-size: 1.8rem; margin-top: 4px;">Curator Directorate Profile</h3>
+            <p style="color: var(--text-inverse-muted); font-size: 0.85rem;">Manage your curator credentials and administrative access.</p>
+          </div>
+
+          <div style="background: #121211; border: 1px solid var(--border-dark); padding: 1.25rem 1.5rem; border-radius: 2px; margin-bottom: 2rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <span style="color: var(--text-inverse-muted); font-size: 0.8rem;">ADMINISTRATOR:</span>
+              <strong style="color: #fff;" id="profileAdminName">Eddy Pro Senior Curator</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <span style="color: var(--text-inverse-muted); font-size: 0.8rem;">LOGIN EMAIL:</span>
+              <strong style="color: var(--accent-gold);" id="profileAdminEmail">admin@eddypro.com</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-inverse-muted); font-size: 0.8rem;">SECURITY ROLE:</span>
+              <span style="color: #81c784; font-size: 0.8rem; font-weight: 600;">Full Directorate Access</span>
+            </div>
+          </div>
+
+          <form id="changePasswordForm">
+            <h4 style="color: #fff; font-size: 1.2rem; margin-bottom: 1rem;">Update Admin Password</h4>
+            
+            <div class="form-group">
+              <label style="color: #ccc;">Current Password</label>
+              <input type="password" id="currentAdminPass" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark);" placeholder="Current password" required>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label style="color: #ccc;">New Password</label>
+                <input type="password" id="newAdminPass" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark);" placeholder="Min 4 characters" minlength="4" required>
+              </div>
+              <div class="form-group">
+                <label style="color: #ccc;">Confirm New Password</label>
+                <input type="password" id="confirmAdminPass" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark);" placeholder="Confirm new password" minlength="4" required>
+              </div>
+            </div>
+
+            <button type="submit" class="btn-primary" style="background: var(--accent-gold); border-color: var(--accent-gold); width: 100%;">
+              Save New Admin Password
+            </button>
+          </form>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Complete Add / Edit Artwork Product Modal -->
+  <div class="modal-backdrop" id="artworkEditorModal">
+    <div class="modal-card" style="background: #181716; color: #fff; border-color: var(--border-dark); max-width: 820px;">
+      <div class="modal-header" style="border-color: var(--border-dark);">
+        <div>
+          <span class="tracking-wide" style="color: var(--accent-gold); display: block; margin-bottom: 4px;">Curatorial Inventory</span>
+          <h3 id="artworkModalTitle" style="color: #fff;">Acquire & Catalog Artwork</h3>
+          <p style="color: var(--text-inverse-muted); font-size: 0.85rem;">All fields update the public catalog, valuations, and interactive detail views in real-time.</p>
+        </div>
+        <button class="modal-close-btn" style="color: #fff;" onclick="AdminApp.closeArtworkModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <form id="artworkForm">
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label style="color: #ccc;">Artwork Title *</label>
+              <input type="text" id="artworkTitle" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark);" placeholder="e.g. Nocturne en Terre d'Ombre" required>
+            </div>
+            <div class="form-group">
+              <label style="color: #ccc;">Artist / Creator *</label>
+              <input type="text" id="artworkArtist" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark);" placeholder="e.g. Éléonore Vance" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label style="color: #ccc;">Execution Year</label>
+              <input type="number" id="artworkYear" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark);" value="2025" min="1900" max="2030">
+            </div>
+            <div class="form-group">
+              <label style="color: #ccc;">Direct Studio Valuation (USD $) *</label>
+              <input type="number" id="artworkPrice" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark);" placeholder="24500" min="0" step="100" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label style="color: #ccc;">Medium & Materials *</label>
+              <input type="text" id="artworkMedium" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark);" placeholder="e.g. Oil and raw earth pigment on Belgian linen" required>
+            </div>
+            <div class="form-group">
+              <label style="color: #ccc;">Exact Dimensions *</label>
+              <input type="text" id="artworkDimensions" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark);" placeholder="e.g. 190 × 140 cm / 74.8 × 55.1 in" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label style="color: #ccc;">Catalog Status</label>
+              <select id="artworkStatus" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark);">
+                <option value="Available">Available for Acquisition</option>
+                <option value="Reserved">Reserved / Under Inspection</option>
+                <option value="Sold">Private Collection / Sold</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label style="color: #ccc;">Included Framing Specification</label>
+              <input type="text" id="artworkFraming" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark);" placeholder="e.g. Bespoke floating raw oak tray frame with 2cm shadow gap">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label style="color: #ccc;">Available Framing Options (Comma Separated)</label>
+            <input type="text" id="artworkFrameOptions" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark);" placeholder="Floating Charcoal Oak, Brushed Gilded Brass, Natural Scandinavian Maple, Unframed Gallery Linen">
+          </div>
+
+          <!-- Device Image Upload Section -->
+          <div class="form-group" style="background: #141312; border: 1px solid var(--border-dark); padding: 1.25rem; border-radius: 4px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+              <label style="color: #fff; font-weight: 600; font-size: 0.95rem; margin-bottom: 0;">
+                Artwork Photograph (Upload from Device) *
+              </label>
+              <span style="font-size: 0.75rem; color: var(--accent-gold);">JPG, PNG, WebP</span>
+            </div>
+
+            <!-- Primary Device File Dropzone -->
+            <div class="image-upload-dropzone" id="imageDropzone" style="background: #0d0d0c; border: 2px dashed var(--accent-gold); padding: 2rem 1.5rem; text-align: center; cursor: pointer; border-radius: 4px; transition: all 0.25s ease;">
+              <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">📸</div>
+              <p style="color: #fff; font-size: 0.95rem; font-weight: 600; margin-bottom: 4px;">
+                Drag & Drop artwork image here, or <span style="color: var(--accent-gold); text-decoration: underline;">click to browse device</span>
+              </p>
+              <p style="font-size: 0.78rem; color: var(--text-inverse-muted); margin-bottom: 1rem;">
+                Select high-resolution photography from your computer, mobile photo library, or camera
+              </p>
+              <button type="button" class="btn-primary" id="btnBrowseDevice" style="background: var(--accent-gold); border-color: var(--accent-gold); font-size: 0.75rem; padding: 6px 16px;">
+                Choose File from Device
+              </button>
+              <input type="file" id="artworkFileInput" accept="image/jpeg,image/png,image/webp,image/gif" style="display: none;">
+            </div>
+
+            <!-- Device Upload Confirmation & Preview Card -->
+            <div id="deviceUploadPreviewCard" style="display: none; margin-top: 1rem; background: #0e0d0c; border: 1px solid var(--border-gold); padding: 1rem; border-radius: 4px;">
+              <div style="display: flex; gap: 1rem; align-items: center;">
+                <img id="artworkImagePreview" src="" alt="Device Image Preview" style="width: 80px; height: 80px; object-fit: cover; border-radius: 2px; border: 1px solid var(--border-dark);">
+                <div style="flex: 1; min-width: 0;">
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="color: #81c784; font-size: 0.8rem;">● Image Selected from Device</span>
+                  </div>
+                  <div id="deviceUploadFileName" style="font-size: 0.85rem; color: #fff; font-weight: 600; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; margin-top: 2px;">
+                    filename.jpg
+                  </div>
+                  <div id="deviceUploadFileSize" style="font-size: 0.75rem; color: var(--text-inverse-muted); margin-top: 2px;">
+                    0 KB
+                  </div>
+                </div>
+                <div>
+                  <button type="button" class="btn-secondary" id="btnChangeDeviceImage" style="font-size: 0.72rem; padding: 5px 10px; color: #fff; border-color: var(--border-dark);">
+                    Change File
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Hidden input that stores the file data URL / path -->
+            <input type="hidden" id="artworkImageUrl" required>
+
+            <!-- Collapsible: Or choose from local presets or custom URL -->
+            <div style="margin-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.75rem;">
+              <details style="font-size: 0.8rem; color: var(--text-inverse-muted);">
+                <summary style="cursor: pointer; color: #aaa; user-select: none;">
+                  Or choose a preset artwork image / custom path...
+                </summary>
+                <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; flex-direction: column;">
+                  <select id="artworkPresetSelector" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark); font-size: 0.8rem;">
+                    <option value="">— Select a local catalog preset image —</option>
+                    <option value="images/art-01.jpg">Preset 1: Nocturne en Terre d'Ombre (Belgian Linen)</option>
+                    <option value="images/art-02.jpg">Preset 2: Monolith & Ochre Resonance (Bronze Patina)</option>
+                    <option value="images/art-03.jpg">Preset 3: Fragment of White Silence (Plaster Relief)</option>
+                    <option value="images/art-04.jpg">Preset 4: Composition in Sienna and Bone (Encaustic)</option>
+                    <option value="images/art-05.jpg">Preset 5: The Architecture of Oblivion (Sumi Ink)</option>
+                    <option value="images/art-06.jpg">Preset 6: L'Heure Dorée (23.75k Gold Leaf)</option>
+                    <option value="images/art-07.jpg">Preset 7: Form & Void III (Carrara Marble & Steel)</option>
+                    <option value="images/art-08.jpg">Preset 8: Tension in Neutralis (Raw Jute & Chalk)</option>
+                  </select>
+                  <input type="text" id="manualImageUrl" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark); font-size: 0.8rem;" placeholder="Manual image path (e.g. images/art-01.jpg)">
+                </div>
+              </details>
+            </div>
+
+          </div>
+
+          <div class="form-group">
+            <label style="color: #ccc;">Provenance & Exhibition History</label>
+            <textarea id="artworkProvenance" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark);" placeholder="e.g. Direct studio accession, Paris. Exhibited at Biennale d'Art Contemporain 2025. Certificate of authenticity included."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label style="color: #ccc;">Curatorial Statement & Critical Analysis</label>
+            <textarea id="artworkStatement" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark);" placeholder="Curatorial description of materiality, optical tension, and aesthetic significance."></textarea>
+          </div>
+
+          <div class="form-group" style="flex-direction: row; align-items: center; gap: 10px; background: #121211; padding: 10px 14px; border: 1px solid var(--border-dark); border-radius: 2px;">
+            <input type="checkbox" id="artworkFeatured" style="width: 18px; height: 18px; accent-color: var(--accent-gold);">
+            <label for="artworkFeatured" style="margin-bottom: 0; color: #fff; cursor: pointer;">
+              Feature as Hero Exhibition Spotlight Piece (displays prominently on landing page)
+            </label>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
+            <button type="button" class="btn-secondary" style="color: #fff; border-color: var(--border-dark);" onclick="AdminApp.closeArtworkModal()">Cancel</button>
+            <button type="submit" class="btn-primary" style="background: var(--accent-gold); border-color: var(--accent-gold);">Save Product to Catalog</button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Product Confirmation Modal -->
+  <div class="modal-backdrop" id="deleteConfirmModal">
+    <div class="modal-card" style="background: #181716; color: #fff; border-color: rgba(211,47,47,0.4); max-width: 500px; text-align: center; padding: 2rem;">
+      <div style="width: 50px; height: 50px; border-radius: 50%; background: rgba(211, 47, 47, 0.15); border: 1px solid #d32f2f; color: #ff6b6b; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem;">✕</div>
+      <h3 style="color: #fff; font-size: 1.6rem; margin-bottom: 0.5rem;">Permanently Remove Artwork?</h3>
+      <p style="color: var(--text-inverse-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+        You are about to remove <strong id="deletePieceTitle" style="color: #fff;"></strong> from the permanent catalog. This piece will be deaccessioned from the public exhibition immediately.
+      </p>
+      <div style="display: flex; gap: 1rem; justify-content: center;">
+        <button class="btn-secondary" style="color: #fff; border-color: var(--border-dark);" onclick="AdminApp.closeDeleteModal()">Cancel</button>
+        <button id="btnConfirmDelete" class="btn-primary" style="background: #d32f2f; border-color: #d32f2f; color: #fff;">Confirm Permanent Deaccession</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Floating Element -->
+  <div id="adminToast" class="admin-toast">
+    <span id="adminToastIcon" style="color: var(--accent-gold); font-weight: 700;">✓</span>
+    <span id="adminToastMsg">Notification message</span>
+  </div>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
