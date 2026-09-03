@@ -343,7 +343,9 @@ button, input, select, textarea {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: clamp(1.5rem, 5vw, 2.5rem);
+  padding: clamp(2rem, 7vw, 3.5rem) clamp(1.75rem, 6.5vw, 2.75rem);
+  padding-left: max(clamp(1.75rem, 6.5vw, 2.75rem), env(safe-area-inset-left));
+  padding-right: max(clamp(1.75rem, 6.5vw, 2.75rem), env(safe-area-inset-right));
   opacity: 0;
   visibility: hidden;
   transform: translateY(-10px);
@@ -362,6 +364,8 @@ button, input, select, textarea {
   align-items: center;
   justify-content: space-between;
   padding-bottom: 1.5rem;
+  padding-left: 0.35rem;
+  padding-right: 0.35rem;
   border-bottom: 1px solid var(--border-dark);
 }
 
@@ -389,8 +393,8 @@ button, input, select, textarea {
 .mobile-nav-links {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  padding: 1.5rem 0;
+  gap: 1.15rem;
+  padding: 1.75rem 0.35rem;
 }
 
 .mobile-nav-link {
@@ -401,16 +405,21 @@ button, input, select, textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  transition: color var(--transition-fast), transform var(--transition-fast);
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  transition: color var(--transition-fast), transform var(--transition-fast), background-color var(--transition-fast);
 }
 
 .mobile-nav-link:hover, .mobile-nav-link.active {
   color: var(--accent-gold);
+  background-color: rgba(194, 165, 126, 0.08);
   transform: translateX(6px);
 }
 
 .mobile-nav-footer {
-  padding-top: 1.25rem;
+  padding-top: 1.5rem;
+  padding-left: 0.35rem;
+  padding-right: 0.35rem;
   border-top: 1px solid var(--border-dark);
   display: flex;
   align-items: center;
@@ -1978,11 +1987,22 @@ textarea.form-control {
 /* Tablets & Mobile Screens (768px and below) */
 @media (max-width: 768px) {
   :root {
-    --header-height: 72px;
+    --header-height: 76px;
   }
 
   .site-header {
     height: var(--header-height);
+  }
+
+  .site-header .container {
+    padding-left: clamp(1.5rem, 5.5vw, 2.5rem);
+    padding-right: clamp(1.5rem, 5.5vw, 2.5rem);
+    padding-left: max(clamp(1.5rem, 5.5vw, 2.5rem), env(safe-area-inset-left));
+    padding-right: max(clamp(1.5rem, 5.5vw, 2.5rem), env(safe-area-inset-right));
+  }
+
+  .header-inner {
+    padding: 0.5rem 0;
   }
 
   .nav-desktop {
@@ -2167,38 +2187,73 @@ textarea.form-control {
 /* Small Smart Phones (480px and below) */
 @media (max-width: 480px) {
   :root {
-    --header-height: 66px;
+    --header-height: 74px;
   }
 
   .site-header {
     height: var(--header-height);
   }
 
+  .site-header .container {
+    padding-left: clamp(1.5rem, 6vw, 2.25rem);
+    padding-right: clamp(1.5rem, 6vw, 2.25rem);
+    padding-left: max(clamp(1.5rem, 6vw, 2.25rem), env(safe-area-inset-left));
+    padding-right: max(clamp(1.5rem, 6vw, 2.25rem), env(safe-area-inset-right));
+  }
+
   .header-inner {
-    padding: 0;
+    padding: 0.5rem 0.25rem;
+    gap: 10px;
+  }
+
+  .brand-logo {
+    padding-left: 2px;
   }
 
   .brand-logo .brand-name {
-    font-size: 1.25rem;
+    font-size: 1.3rem;
   }
 
   .brand-logo .brand-tagline {
-    font-size: 0.55rem;
-    letter-spacing: 0.2em;
+    font-size: 0.58rem;
+    letter-spacing: 0.22em;
   }
 
   .header-tools {
-    gap: 6px;
+    gap: 8px;
+    padding-right: 2px;
   }
 
   .currency-btn {
-    padding: 3px 7px;
-    font-size: 0.65rem;
+    padding: 4px 8px;
+    font-size: 0.68rem;
   }
 
   .wishlist-pill {
-    padding: 5px 9px;
-    font-size: 0.72rem;
+    padding: 6px 11px;
+    font-size: 0.74rem;
+  }
+
+  .mobile-menu-toggle {
+    width: 38px;
+    height: 38px;
+    padding: 7px;
+  }
+
+  .mobile-nav-drawer {
+    padding: clamp(2rem, 8vw, 3rem) clamp(1.5rem, 7vw, 2.5rem);
+    padding-left: max(clamp(1.5rem, 7vw, 2.5rem), env(safe-area-inset-left));
+    padding-right: max(clamp(1.5rem, 7vw, 2.5rem), env(safe-area-inset-right));
+  }
+
+  .mobile-nav-links {
+    gap: 1.15rem;
+    padding: 1.5rem 0.25rem;
+  }
+
+  .mobile-nav-link {
+    font-size: clamp(1.5rem, 5.5vw, 2rem);
+    padding: 0.6rem 0.75rem;
   }
 
   /* Hide curator button on micro-header (available inside mobile drawer) */
