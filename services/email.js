@@ -1,7 +1,7 @@
 ﻿/**
  * 55 smartCREATIVES — Transactional Email Service
  * Supports Resend (primary) and SendGrid (fallback) via native HTTPS REST API.
- * Zero dependency bloat, 100% serverless compatible.
+ * Zero dependency bloat, 100% serverless compatible on Vercel.
  */
 
 const RESEND_API_URL = 'https://api.resend.com/emails';
@@ -21,14 +21,23 @@ function getAdminEmail() {
 }
 
 /**
+ * Validate RFC-5322 compliant email format
+ */
+function isValidEmail(email) {
+  if (!email || typeof email !== 'string') return false;
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  return emailRegex.test(email.trim());
+}
+
+/**
  * Send an email via Resend or SendGrid
  */
-async function sendEmail({ to, subject, html, replyTo }) {
+async function sendEmail({ to, subject, text, html, replyTo }) {
   const resendKey = process.env.RESEND_API_KEY;
   const sendgridKey = process.env.SENDGRID_API_KEY;
   const from = getSenderEmail();
 
-  // 1. Resend API (Preferred)
+  // 1. Resend API (Preferred for Vercel/Node.js)
   if (resendKey && !resendKey.includes('your_resend_api_key')) {
     try {
       const res = await fetch(RESEND_API_URL, {
@@ -41,6 +50,7 @@ async function sendEmail({ to, subject, html, replyTo }) {
           from,
           to: Array.isArray(to) ? to : [to],
           subject,
+          text: text || undefined,
           html,
           reply_to: replyTo || undefined
         })
@@ -48,7 +58,7 @@ async function sendEmail({ to, subject, html, replyTo }) {
 
       const data = await res.json();
       if (res.ok) {
-        console.log(`✓ [Resend Email Sent] to: ${to} | id: ${data.id || 'ok'}`);
+        console.log(`✓ [Resend Email Sent] to: ${to} | Subject: "${subject}" | id: ${data.id || 'ok'}`);
         return { success: true, provider: 'resend', id: data.id };
       } else {
         console.warn(`! [Resend Email Error]:`, data);
@@ -63,6 +73,10 @@ async function sendEmail({ to, subject, html, replyTo }) {
   // 2. SendGrid API (Fallback)
   if (sendgridKey && !sendgridKey.includes('your_sendgrid_key')) {
     try {
+      const content = [];
+      if (text) content.push({ type: 'text/plain', value: text });
+      if (html) content.push({ type: 'text/html', value: html });
+
       const res = await fetch(SENDGRID_API_URL, {
         method: 'POST',
         headers: {
@@ -73,12 +87,12 @@ async function sendEmail({ to, subject, html, replyTo }) {
           personalizations: [{ to: [{ email: to }] }],
           from: { email: from.includes('<') ? from.match(/<([^>]+)>/)[1] : from, name: '55 smartCREATIVES' },
           subject,
-          content: [{ type: 'text/html', value: html }]
+          content
         })
       });
 
       if (res.status >= 200 && res.status < 300) {
-        console.log(`✓ [SendGrid Email Sent] to: ${to}`);
+        console.log(`✓ [SendGrid Email Sent] to: ${to} | Subject: "${subject}"`);
         return { success: true, provider: 'sendgrid' };
       } else {
         const errText = await res.text();
@@ -92,107 +106,122 @@ async function sendEmail({ to, subject, html, replyTo }) {
   }
 
   // 3. Simulated Mode (when API keys are not yet configured in local dev)
-  console.log(`ℹ [Email Notice - No API Key Configured] Simulated email to: ${to} | Subject: "${subject}"`);
+  console.log(`ℹ [Email Notice - Simulated] to: ${to} | Subject: "${subject}"`);
   return { success: true, simulated: true };
 }
 
 /**
- * Send automated confirmation email to client and alert email to admin
+ * Send automated confirmation email directly to the customer
  */
-async function sendInquiryNotifications(inquiry) {
+async function sendCustomerConfirmation(inquiry) {
+  const rawEmail = inquiry.collectorEmail;
+  const customerEmail = rawEmail ? rawEmail.trim() : '';
+
+  // Validate email address format before sending; skip and log if invalid
+  if (!isValidEmail(customerEmail)) {
+    console.warn(`! [Email Skipped] Invalid customer email address format: "${rawEmail}". Skipping confirmation email.`);
+    return { success: false, skipped: true, error: 'Invalid email format' };
+  }
+
+  const subject = "We've received your inquiry — 55 smartCREATIVES";
+  const exactMessage = "55 smartCREATIVES received your inquiry. Let's get back to you shortly with an appropriate reply. Thank you.";
+
+  const artworkTitle = inquiry.artworkTitle || 'Curated Artwork';
+  const collectorName = inquiry.collectorName || 'Valued Client';
   const siteUrl = getSiteUrl();
   const adminEmail = getAdminEmail();
-  const artworkTitle = inquiry.artworkTitle || 'Curated Fine Art';
-  const collectorName = inquiry.collectorName || 'Valued Collector';
-  const collectorEmail = inquiry.collectorEmail;
-  const formattedPrice = inquiry.artworkPrice ? `$${Number(inquiry.artworkPrice).toLocaleString()}` : 'Price Upon Request';
-  const framePref = inquiry.framePreference || 'Gallery Presentation';
-  const notes = inquiry.notes || 'Inquired about purchasing this artwork.';
   const artworkLink = inquiry.artworkId ? `${siteUrl}/artwork.html?id=${inquiry.artworkId}` : `${siteUrl}/#catalog`;
-  const adminDashboardLink = `${siteUrl}/admin.html`;
 
-  const results = {
-    customerEmail: null,
-    adminEmail: null
-  };
-
-  // --- 1. Customer Confirmation Email ---
-  if (collectorEmail && collectorEmail.includes('@')) {
-    const customerHtml = `
+  const htmlBody = `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
+  <title>${subject}</title>
   <style>
-    body { margin: 0; padding: 0; background-color: #121211; font-family: 'Helvetica Neue', Arial, sans-serif; color: #e0e0e0; }
-    .container { max-width: 600px; margin: 0 auto; background-color: #181716; border: 1px solid #2a2826; }
-    .header { padding: 36px 32px 24px; text-align: center; border-bottom: 1px solid #2a2826; }
-    .brand { font-size: 20px; font-weight: 700; letter-spacing: 0.15em; color: #ffffff; text-transform: uppercase; }
+    body { margin: 0; padding: 0; background-color: #121211; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #e0e0e0; }
+    .container { max-width: 600px; margin: 20px auto; background-color: #181716; border: 1px solid #2a2826; border-radius: 4px; overflow: hidden; }
+    .header { padding: 32px 28px 24px; text-align: center; border-bottom: 1px solid #2a2826; background: #141312; }
+    .brand { font-size: 20px; font-weight: 700; letter-spacing: 0.18em; color: #ffffff; text-transform: uppercase; }
     .tagline { font-size: 11px; letter-spacing: 0.25em; color: #c2a57e; text-transform: uppercase; margin-top: 6px; }
     .content { padding: 36px 32px; line-height: 1.6; }
-    .greeting { font-size: 18px; color: #ffffff; margin-bottom: 16px; }
-    .artwork-card { background-color: #121211; border: 1px solid #2a2826; border-left: 3px solid #c2a57e; padding: 20px; margin: 24px 0; }
-    .artwork-title { font-size: 18px; font-weight: 600; color: #ffffff; margin: 0 0 8px 0; }
-    .spec-line { font-size: 13px; color: #a0a0a0; margin: 4px 0; }
-    .spec-value { color: #ffffff; }
-    .gold { color: #c2a57e; font-weight: 600; }
-    .btn { display: inline-block; background-color: #c2a57e; color: #121211; font-weight: 700; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; padding: 14px 28px; border-radius: 2px; margin-top: 20px; }
-    .footer { padding: 24px 32px; border-top: 1px solid #2a2826; font-size: 12px; color: #707070; text-align: center; }
+    .greeting { font-size: 17px; color: #ffffff; margin-bottom: 18px; font-weight: 600; }
+    .main-message { font-size: 15px; color: #f0f0f0; background: rgba(194, 165, 126, 0.08); border-left: 3px solid #c2a57e; padding: 18px 20px; margin-bottom: 24px; line-height: 1.6; }
+    .artwork-card { background-color: #121211; border: 1px solid #2a2826; padding: 18px 20px; border-radius: 4px; margin-bottom: 24px; }
+    .artwork-label { font-size: 11px; letter-spacing: 0.1em; color: #888; text-transform: uppercase; margin-bottom: 4px; }
+    .artwork-title { font-size: 16px; font-weight: 600; color: #ffffff; }
+    .btn { display: inline-block; background-color: #c2a57e; color: #121211; font-weight: 700; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; text-decoration: none; padding: 12px 24px; border-radius: 2px; }
+    .footer { padding: 20px 32px; border-top: 1px solid #2a2826; font-size: 12px; color: #666; text-align: center; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
       <div class="brand">55 smartCREATIVES</div>
-      <div class="tagline">Fine Art Gallery &bull; Curator Directorate</div>
+      <div class="tagline">FINE ART GALLERY &bull; CURATOR DIRECTORATE</div>
     </div>
     <div class="content">
-      <div class="greeting">Dear ${collectorName},</div>
-      <p>Thank you for contacting <strong>55 smartCREATIVES</strong>. We have successfully received your inquiry regarding:</p>
+      <div class="greeting">Hello ${collectorName},</div>
       
-      <div class="artwork-card">
-        <div class="artwork-title">${artworkTitle}</div>
-        <div class="spec-line">Artist: <span class="spec-value">${inquiry.artworkArtist || '55 smartCREATIVES'}</span></div>
-        <div class="spec-line">Framing Preference: <span class="spec-value">${framePref}</span></div>
-        <div class="spec-line">Listed Valuation: <span class="gold">${formattedPrice}</span></div>
-        <div class="spec-line" style="margin-top: 12px; font-style: italic; color: #888;">Your note: "${notes}"</div>
+      <div class="main-message">
+        ${exactMessage}
       </div>
 
-      <p>Our senior curatorial director is currently reviewing your request. We will reach out to you directly within <strong>24 business hours</strong> with detailed provenance documentation, custom framing options, and secure international delivery arrangements.</p>
+      <div class="artwork-card">
+        <div class="artwork-label">Artwork in Review:</div>
+        <div class="artwork-title">"${artworkTitle}"</div>
+        ${inquiry.framePreference ? `<div style="font-size: 13px; color: #999; margin-top: 6px;">Framing: ${inquiry.framePreference}</div>` : ''}
+        ${inquiry.notes ? `<div style="font-size: 13px; color: #888; margin-top: 6px; font-style: italic;">"${inquiry.notes}"</div>` : ''}
+      </div>
 
-      <p style="margin-top: 24px;">If you have immediate questions, you may reply directly to this email.</p>
-      
-      <div style="text-align: center;">
+      <div style="text-align: center; margin-top: 24px;">
         <a href="${artworkLink}" class="btn">View Artwork Online</a>
       </div>
     </div>
     <div class="footer">
-      55 smartCREATIVES Fine Art Gallery &bull; Curator Directorate<br>
-      Reference: ${inquiry.id || 'INQ-' + Date.now()}
+      55 smartCREATIVES &bull; Curated Luxury Art &bull; Reference: ${inquiry.id || 'INQ'}
     </div>
   </div>
 </body>
 </html>
 `;
 
-    results.customerEmail = await sendEmail({
-      to: collectorEmail,
-      subject: `Inquiry Confirmation: "${artworkTitle}" — 55 smartCREATIVES`,
-      html: customerHtml,
-      replyTo: adminEmail
-    }).catch(e => ({ success: false, error: e.message }));
-  }
+  return sendEmail({
+    to: customerEmail,
+    subject,
+    text: exactMessage,
+    html: htmlBody,
+    replyTo: adminEmail
+  });
+}
 
-  // --- 2. Admin Notification Email ---
-  if (adminEmail && adminEmail.includes('@')) {
-    const adminHtml = `
+/**
+ * Send alert email directly to the curator/admin
+ */
+async function sendAdminNotification(inquiry) {
+  const adminEmail = getAdminEmail();
+  if (!isValidEmail(adminEmail)) return { success: false, skipped: true };
+
+  const siteUrl = getSiteUrl();
+  const artworkTitle = inquiry.artworkTitle || 'Curated Fine Art';
+  const collectorName = inquiry.collectorName || 'Anonymous Collector';
+  const collectorEmail = inquiry.collectorEmail || 'Not provided';
+  const collectorPhone = inquiry.collectorPhone || 'Not provided';
+  const formattedPrice = inquiry.artworkPrice ? `$${Number(inquiry.artworkPrice).toLocaleString()}` : 'Price Upon Request';
+  const framePref = inquiry.framePreference || 'Gallery Presentation';
+  const notes = inquiry.notes || 'Inquired about purchasing this artwork.';
+  const adminDashboardLink = `${siteUrl}/admin.html`;
+
+  const subject = `⚡ New Customer Inquiry: "${artworkTitle}" from ${collectorName}`;
+
+  const adminHtml = `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <style>
-    body { margin: 0; padding: 0; background-color: #121211; font-family: 'Helvetica Neue', Arial, sans-serif; color: #e0e0e0; }
-    .container { max-width: 600px; margin: 0 auto; background-color: #181716; border: 1px solid #2a2826; }
+    body { margin: 0; padding: 0; background-color: #121211; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #e0e0e0; }
+    .container { max-width: 600px; margin: 20px auto; background-color: #181716; border: 1px solid #2a2826; border-radius: 4px; overflow: hidden; }
     .header { padding: 24px 32px; background: rgba(194, 165, 126, 0.15); border-bottom: 2px solid #c2a57e; }
     .badge { display: inline-block; background: #c2a57e; color: #121211; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 2px; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
     .title { font-size: 20px; font-weight: 700; color: #ffffff; margin: 0; }
@@ -202,7 +231,7 @@ async function sendInquiryNotifications(inquiry) {
     .data-table td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #222; }
     .data-label { color: #888; width: 140px; font-weight: 600; }
     .data-val { color: #fff; }
-    .btn { display: inline-block; background-color: #c2a57e; color: #121211; font-weight: 700; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; padding: 14px 28px; border-radius: 2px; margin-top: 16px; }
+    .btn { display: inline-block; background-color: #c2a57e; color: #121211; font-weight: 700; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; padding: 12px 24px; border-radius: 2px; margin-top: 16px; }
     .footer { padding: 20px 32px; border-top: 1px solid #2a2826; font-size: 11px; color: #666; text-align: center; }
   </style>
 </head>
@@ -213,7 +242,7 @@ async function sendInquiryNotifications(inquiry) {
       <h1 class="title">"${artworkTitle}"</h1>
     </div>
     <div class="content">
-      <div class="section-title">Collector Details</div>
+      <div class="section-title">Customer Details</div>
       <table class="data-table">
         <tr>
           <td class="data-label">Name:</td>
@@ -225,22 +254,22 @@ async function sendInquiryNotifications(inquiry) {
         </tr>
         <tr>
           <td class="data-label">Phone:</td>
-          <td class="data-val">${inquiry.collectorPhone ? '<a href="tel:' + inquiry.collectorPhone + '" style="color: #c2a57e;">' + inquiry.collectorPhone + '</a>' : 'Not provided'}</td>
+          <td class="data-val">${collectorPhone}</td>
         </tr>
         <tr>
-          <td class="data-label">Date:</td>
+          <td class="data-label">Received At:</td>
           <td class="data-val">${new Date().toLocaleString()}</td>
         </tr>
       </table>
 
-      <div class="section-title">Artwork Inquired</div>
+      <div class="section-title">Artwork Details</div>
       <table class="data-table">
         <tr>
           <td class="data-label">Artwork:</td>
           <td class="data-val"><strong>${artworkTitle}</strong></td>
         </tr>
         <tr>
-          <td class="data-label">Price / Value:</td>
+          <td class="data-label">Listed Price:</td>
           <td class="data-val" style="color: #c2a57e; font-weight: 700;">${formattedPrice}</td>
         </tr>
         <tr>
@@ -248,12 +277,12 @@ async function sendInquiryNotifications(inquiry) {
           <td class="data-val">${framePref}</td>
         </tr>
         <tr>
-          <td class="data-label">Reference ID:</td>
+          <td class="data-label">Inquiry Ref:</td>
           <td class="data-val"><code>${inquiry.id || 'N/A'}</code></td>
         </tr>
       </table>
 
-      <div class="section-title">Client Message</div>
+      <div class="section-title">Customer Message</div>
       <div style="background: #121211; border: 1px solid #2a2826; padding: 14px; font-style: italic; color: #ddd; font-size: 14px; line-height: 1.5;">
         "${notes}"
       </div>
@@ -270,19 +299,35 @@ async function sendInquiryNotifications(inquiry) {
 </html>
 `;
 
-    results.adminEmail = await sendEmail({
-      to: adminEmail,
-      subject: `⚡ New Inquiry: "${artworkTitle}" from ${collectorName}`,
-      html: adminHtml,
-      replyTo: collectorEmail
-    }).catch(e => ({ success: false, error: e.message }));
-  }
+  return sendEmail({
+    to: adminEmail,
+    subject,
+    text: `New customer inquiry received from ${collectorName} (${collectorEmail}) regarding "${artworkTitle}". Message: "${notes}"`,
+    html: adminHtml,
+    replyTo: collectorEmail
+  });
+}
 
-  return results;
+/**
+ * Dispatch both notifications asynchronously
+ */
+async function sendInquiryNotifications(inquiry) {
+  const [customerEmail, adminEmail] = await Promise.allSettled([
+    sendCustomerConfirmation(inquiry),
+    sendAdminNotification(inquiry)
+  ]);
+
+  return {
+    customerEmail: customerEmail.status === 'fulfilled' ? customerEmail.value : { success: false, error: customerEmail.reason },
+    adminEmail: adminEmail.status === 'fulfilled' ? adminEmail.value : { success: false, error: adminEmail.reason }
+  };
 }
 
 module.exports = {
   sendEmail,
+  isValidEmail,
+  sendCustomerConfirmation,
+  sendAdminNotification,
   sendInquiryNotifications,
   getSiteUrl,
   getAdminEmail

@@ -1,5 +1,23 @@
 [
   {
+    "id": "inq-2102",
+    "artworkId": "art-02",
+    "artworkTitle": "Warm Terracotta Abstract",
+    "artworkArtist": "55 smartCREATIVES",
+    "artworkPrice": 18500,
+    "artworkImage": "",
+    "collectorName": "Eddy Ndyanabo",
+    "collectorEmail": "ndyanaboeddy512@gmail.com",
+    "collectorPhone": "+256 700 123456",
+    "framePreference": "Natural Scandinavian Maple",
+    "notes": "I would like to acquire this piece. Please send shipping options to Kampala.",
+    "status": "Pending",
+    "opened": false,
+    "isCustomerSubmission": true,
+    "date": "2026-09-03T14:42:25.000Z",
+    "curatorNotes": "Inquiry received. Awaiting curator assignment."
+  },
+  {
     "id": "inq-6678",
     "artworkId": "art-01",
     "artworkTitle": "Night Shadows in Warm Earth",
