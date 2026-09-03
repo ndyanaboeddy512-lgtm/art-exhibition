@@ -12,7 +12,8 @@
   "dependencies": {
     "cors": "^2.8.6",
     "express": "^4.22.2",
-    "mysql2": "^3.24.3"
+    "mysql2": "^3.24.3",
+    "nodemailer": "^9.1.1"
   },
   "keywords": [
     "art-gallery",

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 55 smartCREATIVES — Transactional Email Service
  * Supports Resend (primary) and SendGrid (fallback) via native HTTPS REST API.
  * Zero dependency bloat, 100% serverless compatible on Vercel.
@@ -61,7 +61,11 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
         console.log(`✓ [Resend Email Sent] to: ${to} | Subject: "${subject}" | id: ${data.id || 'ok'}`);
         return { success: true, provider: 'resend', id: data.id };
       } else {
-        console.warn(`! [Resend Email Error]:`, data);
+        if (data.message && data.message.includes('only send testing emails to your own email address')) {
+          console.warn(`! [Resend Domain Restriction]: Resend default 'onboarding@resend.dev' only permits delivering to your registered Resend account email address. To deliver confirmation emails to any customer email address worldwide, add and verify your domain in Resend at https://resend.com/domains or configure Gmail SMTP.`);
+        } else {
+          console.warn(`! [Resend Email Error]:`, data);
+        }
         return { success: false, provider: 'resend', error: data.message || 'Unknown error' };
       }
     } catch (err) {
@@ -70,7 +74,37 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
     }
   }
 
-  // 2. SendGrid API (Fallback)
+  // 2. SMTP / Gmail Transport (Universal delivery to ANY recipient worldwide with 0 domain setup)
+  const smtpUser = process.env.SMTP_USER || process.env.GMAIL_USER;
+  const smtpPass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD;
+  if (smtpUser && smtpPass && !smtpPass.includes('your_app_password')) {
+    try {
+      const nodemailer = require('nodemailer');
+      const transporter = nodemailer.createTransport({
+        service: process.env.SMTP_SERVICE || (smtpUser.includes('@gmail') ? 'gmail' : undefined),
+        host: process.env.SMTP_HOST || undefined,
+        port: parseInt(process.env.SMTP_PORT, 10) || undefined,
+        secure: process.env.SMTP_SECURE === 'true',
+        auth: { user: smtpUser, pass: smtpPass }
+      });
+
+      const info = await transporter.sendMail({
+        from: `55 smartCREATIVES <${smtpUser}>`,
+        to,
+        subject,
+        text,
+        html,
+        replyTo: replyTo || undefined
+      });
+      console.log(`✓ [SMTP Email Sent] to: ${to} | Subject: "${subject}" | id: ${info.messageId}`);
+      return { success: true, provider: 'smtp', id: info.messageId };
+    } catch (err) {
+      console.warn(`! [SMTP Email Exception]:`, err.message);
+      return { success: false, provider: 'smtp', error: err.message };
+    }
+  }
+
+  // 3. SendGrid API (Fallback)
   if (sendgridKey && !sendgridKey.includes('your_sendgrid_key')) {
     try {
       const content = [];
@@ -105,7 +139,7 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
     }
   }
 
-  // 3. Simulated Mode (when API keys are not yet configured in local dev)
+  // 4. Simulated Mode (when API keys are not yet configured in local dev)
   console.log(`ℹ [Email Notice - Simulated] to: ${to} | Subject: "${subject}"`);
   return { success: true, simulated: true };
 }
