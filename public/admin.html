@@ -213,6 +213,19 @@
               <h3>Customer Inquiries & Orders</h3>
               <p style="color: var(--text-inverse-muted); font-size: 0.85rem;">View inquiries sent by customers, update their status, and add notes.</p>
             </div>
+            <div style="display: flex; gap: 0.85rem; align-items: center; flex-wrap: wrap;">
+              <input type="text" id="inquiriesSearch" class="form-control" style="width: 200px; padding: 6px 12px; font-size: 0.82rem; background: #121211; color: #fff; border-color: var(--border-dark);" placeholder="Search client, artwork...">
+              <select id="inquiriesStatusFilter" class="form-control" style="width: 140px; padding: 6px 10px; font-size: 0.82rem; background: #121211; color: #fff; border-color: var(--border-dark);">
+                <option value="all">All Statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="Contacted">Contacted</option>
+                <option value="Invoice Sent">Invoice Sent</option>
+                <option value="Closed/Sold">Closed/Sold</option>
+              </select>
+              <button class="btn-secondary" style="color: #fff; border-color: var(--border-dark); font-size: 0.78rem; padding: 7px 14px; display: inline-flex; align-items: center; gap: 6px;" onclick="AdminApp.refreshInquiries(); AdminApp.showToast('Inquiries refreshed');">
+                ↻ Refresh
+              </button>
+            </div>
           </div>
 
           <div style="overflow-x: auto;">

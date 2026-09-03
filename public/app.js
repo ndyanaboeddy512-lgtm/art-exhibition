@@ -226,23 +226,8 @@ const EddyStore = {
       this.saveArtworksLocally();
     }
 
-    // Load inquiries
-    try {
-      if (this.isBackendConnected) {
-        const inqRes = await fetch('/api/inquiries');
-        if (inqRes.ok) {
-          this.inquiries = await inqRes.json();
-          this.saveInquiriesLocally();
-        }
-      } else {
-        const cachedInq = localStorage.getItem('eddy_inquiries');
-        this.inquiries = cachedInq ? JSON.parse(cachedInq) : DEFAULT_INQUIRIES;
-        this.saveInquiriesLocally();
-      }
-    } catch (err) {
-      const cachedInq = localStorage.getItem('eddy_inquiries');
-      this.inquiries = cachedInq ? JSON.parse(cachedInq) : DEFAULT_INQUIRIES;
-    }
+    // Load inquiries with smart local/server merge
+    await this.fetchInquiries();
 
     this.updateWishlistBadge();
     this.initCurrencyButtons();
@@ -251,6 +236,84 @@ const EddyStore = {
     // Dispatch global event so UI components immediately render the updated catalog
     window.dispatchEvent(new CustomEvent('artworksLoaded', { detail: this.artworks }));
     return this.artworks;
+  },
+
+  async fetchInquiries() {
+    let serverInquiries = [];
+    let localInquiries = [];
+
+    // 1. Read existing local storage inquiries
+    try {
+      const cached = localStorage.getItem('eddy_inquiries');
+      if (cached) {
+        localInquiries = JSON.parse(cached);
+      }
+    } catch (e) {
+      console.warn('Could not parse local inquiries', e);
+    }
+
+    // 2. Fetch server inquiries
+    try {
+      const res = await fetch('/api/inquiries');
+      if (res.ok) {
+        serverInquiries = await res.json();
+        this.isBackendConnected = true;
+      }
+    } catch (err) {
+      // Backend offline or running in static mode
+    }
+
+    // 3. Merge without losing ANY local inquiries
+    const map = new Map();
+
+    // Add local inquiries first (user submissions on this device)
+    if (Array.isArray(localInquiries)) {
+      localInquiries.forEach(inq => {
+        if (inq && inq.id) map.set(inq.id, inq);
+      });
+    }
+
+    // Add or merge server inquiries
+    if (Array.isArray(serverInquiries)) {
+      serverInquiries.forEach(inq => {
+        if (inq && inq.id) {
+          if (!map.has(inq.id)) {
+            map.set(inq.id, inq);
+          } else {
+            // Server status or curator note takes precedence if updated
+            map.set(inq.id, { ...map.get(inq.id), ...inq });
+          }
+        }
+      });
+    }
+
+    // If completely empty, load defaults
+    if (map.size === 0 && typeof DEFAULT_INQUIRIES !== 'undefined') {
+      DEFAULT_INQUIRIES.forEach(inq => map.set(inq.id, inq));
+    }
+
+    this.inquiries = Array.from(map.values());
+    // Sort newest first
+    this.inquiries.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+    this.saveInquiriesLocally();
+
+    // 4. Background push any local inquiries to server if not on server yet
+    if (this.isBackendConnected && localInquiries.length > 0) {
+      const serverIds = new Set((serverInquiries || []).map(i => i.id));
+      const unsynced = localInquiries.filter(i => !serverIds.has(i.id));
+      if (unsynced.length > 0) {
+        try {
+          fetch('/api/inquiries/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(unsynced)
+          });
+        } catch (e) {}
+      }
+    }
+
+    window.dispatchEvent(new CustomEvent('inquiriesUpdated', { detail: this.inquiries }));
+    return this.inquiries;
   },
 
   updateUserNav() {
@@ -292,34 +355,39 @@ const EddyStore = {
   },
 
   async addInquiry(inquiryData) {
-    if (this.isBackendConnected) {
-      try {
-        const res = await fetch('/api/inquiries', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(inquiryData)
-        });
-        if (res.ok) {
-          const saved = await res.json();
-          this.inquiries.unshift(saved);
-          this.saveInquiriesLocally();
-          return saved;
-        }
-      } catch (e) {
-        console.warn('Failed to post inquiry to API, falling back to local storage', e);
-      }
-    }
-
-    // Fallback local addition
     const newInquiry = {
       id: 'inq-' + Math.floor(1000 + Math.random() * 9000),
       ...inquiryData,
       status: 'Pending',
       date: new Date().toISOString(),
-      curatorNotes: 'Inquiry received. Awaiting senior curator review.'
+      curatorNotes: 'Inquiry received. Awaiting curator review.'
     };
+
+    // 1. Immediately store in local store and localStorage (zero latency, zero risk of loss)
     this.inquiries.unshift(newInquiry);
     this.saveInquiriesLocally();
+    window.dispatchEvent(new CustomEvent('inquiriesUpdated', { detail: this.inquiries }));
+
+    // 2. Synchronize with backend API
+    try {
+      const res = await fetch('/api/inquiries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newInquiry)
+      });
+      if (res.ok) {
+        const saved = await res.json();
+        if (saved && saved.id) {
+          const idx = this.inquiries.findIndex(i => i.id === newInquiry.id);
+          if (idx > -1) this.inquiries[idx] = saved;
+          this.saveInquiriesLocally();
+          return saved;
+        }
+      }
+    } catch (e) {
+      console.warn('API sync failed, saved safely in local storage', e);
+    }
+
     return newInquiry;
   },
 

@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,12 +21,24 @@ const ADMIN_FILE = path.join(DATA_DIR, 'admin.json');
 
 // Ensure data directory exists
 if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+  try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch (e) {}
 }
 
-// Helpers to read/write JSON safely
+// Helpers to read/write JSON safely with /tmp serverless persistence
+function getTmpFilePath(file) {
+  const baseName = path.basename(file);
+  return path.join(os.tmpdir(), `55_smartcreatives_${baseName}`);
+}
+
 function readJSON(file, fallback = []) {
+  const tmpFile = getTmpFilePath(file);
   try {
+    // 1. Check temporary writable storage first (persists across requests in serverless)
+    if (fs.existsSync(tmpFile)) {
+      const data = fs.readFileSync(tmpFile, 'utf-8');
+      return JSON.parse(data);
+    }
+    // 2. Check bundled project directory
     if (fs.existsSync(file)) {
       const data = fs.readFileSync(file, 'utf-8');
       return JSON.parse(data);
@@ -43,13 +56,24 @@ function readJSON(file, fallback = []) {
 }
 
 function writeJSON(file, data) {
+  let success = false;
+  // 1. Always write to tmp storage (guaranteed writable on Vercel, Linux, and Windows)
+  try {
+    const tmpFile = getTmpFilePath(file);
+    fs.writeFileSync(tmpFile, JSON.stringify(data, null, 2), 'utf-8');
+    success = true;
+  } catch (err) {
+    console.warn(`Tmp storage write notice:`, err.message);
+  }
+
+  // 2. Also write to project directory if writable
   try {
     fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf-8');
-    return true;
+    success = true;
   } catch (err) {
-    console.warn(`Filesystem write notice (read-only environment or Vercel):`, err.message);
-    return false;
+    // Expected on Vercel serverless read-only filesystem
   }
+  return success;
 }
 
 // Image Directory & Base64 Disk Saver
@@ -242,8 +266,11 @@ app.get('/api/inquiries', (req, res) => {
 // POST new inquiry (Collector or Guest)
 app.post('/api/inquiries', (req, res) => {
   const inquiries = readJSON(INQUIRIES_FILE);
+  const newId = req.body.id || ('inq-' + Math.floor(1000 + Math.random() * 9000));
+  
+  const existingIdx = inquiries.findIndex(i => i.id === newId);
   const newInquiry = {
-    id: 'inq-' + Math.floor(1000 + Math.random() * 9000),
+    id: newId,
     artworkId: req.body.artworkId || '',
     artworkTitle: req.body.artworkTitle || 'General Acquisition Inquiry',
     artworkArtist: req.body.artworkArtist || '',
@@ -254,14 +281,42 @@ app.post('/api/inquiries', (req, res) => {
     collectorPhone: req.body.collectorPhone || '',
     framePreference: req.body.framePreference || 'Included Framing',
     notes: req.body.notes || '',
-    status: 'Pending',
-    date: new Date().toISOString(),
-    curatorNotes: 'Inquiry received. Awaiting curator assignment.'
+    status: req.body.status || 'Pending',
+    date: req.body.date || new Date().toISOString(),
+    curatorNotes: req.body.curatorNotes || 'Inquiry received. Awaiting curator assignment.'
   };
 
-  inquiries.unshift(newInquiry);
+  if (existingIdx > -1) {
+    inquiries[existingIdx] = { ...inquiries[existingIdx], ...newInquiry };
+  } else {
+    inquiries.unshift(newInquiry);
+  }
+
   writeJSON(INQUIRIES_FILE, inquiries);
+  console.log(`✓ Inquiry logged: ${newInquiry.id} from ${newInquiry.collectorName}`);
   res.status(201).json(newInquiry);
+});
+
+// POST sync multiple inquiries from client
+app.post('/api/inquiries/sync', (req, res) => {
+  const clientInquiries = Array.isArray(req.body) ? req.body : [];
+  const serverInquiries = readJSON(INQUIRIES_FILE);
+  const map = new Map();
+
+  // Add existing server inquiries
+  serverInquiries.forEach(i => { if (i && i.id) map.set(i.id, i); });
+
+  // Merge client inquiries
+  clientInquiries.forEach(i => {
+    if (i && i.id && !map.has(i.id)) {
+      map.set(i.id, i);
+    }
+  });
+
+  const merged = Array.from(map.values());
+  merged.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+  writeJSON(INQUIRIES_FILE, merged);
+  res.json(merged);
 });
 
 // PATCH update inquiry status or notes (Admin)

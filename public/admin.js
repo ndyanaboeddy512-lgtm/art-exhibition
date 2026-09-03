@@ -65,6 +65,12 @@ const AdminApp = {
     document.getElementById('viewInventorySection').style.display = tab === 'inventory' ? 'block' : 'none';
     document.getElementById('viewInquiriesSection').style.display = tab === 'inquiries' ? 'block' : 'none';
     document.getElementById('viewSecuritySection').style.display = tab === 'security' ? 'block' : 'none';
+
+    if (tab === 'inquiries') {
+      this.refreshInquiries();
+    } else if (tab === 'inventory') {
+      this.renderInventoryTable();
+    }
   },
 
   bindEvents() {
@@ -299,6 +305,28 @@ const AdminApp = {
         this.confirmDeleteArtwork();
       });
     }
+
+    // Inquiries Search and Status filter
+    const inqSearch = document.getElementById('inquiriesSearch');
+    const inqStatus = document.getElementById('inquiriesStatusFilter');
+
+    if (inqSearch) {
+      inqSearch.addEventListener('input', () => {
+        this.renderInquiriesTable(inqSearch.value.toLowerCase(), inqStatus ? inqStatus.value : 'all');
+      });
+    }
+
+    if (inqStatus) {
+      inqStatus.addEventListener('change', () => {
+        this.renderInquiriesTable(inqSearch ? inqSearch.value.toLowerCase() : '', inqStatus.value);
+      });
+    }
+
+    // Live update when inquiries are added
+    window.addEventListener('inquiriesUpdated', () => {
+      this.renderStats();
+      this.renderInquiriesTable(inqSearch ? inqSearch.value.toLowerCase() : '', inqStatus ? inqStatus.value : 'all');
+    });
   },
 
   handleImageFile(file) {
@@ -408,33 +436,66 @@ const AdminApp = {
     `).join('');
   },
 
-  renderInquiriesTable() {
+  async refreshInquiries() {
+    try {
+      await EddyStore.fetchInquiries();
+      this.renderStats();
+      const inqSearch = document.getElementById('inquiriesSearch');
+      const inqStatus = document.getElementById('inquiriesStatusFilter');
+      this.renderInquiriesTable(inqSearch ? inqSearch.value.toLowerCase() : '', inqStatus ? inqStatus.value : 'all');
+    } catch (e) {
+      console.warn('Could not refresh inquiries', e);
+    }
+  },
+
+  renderInquiriesTable(filterTerm = '', statusFilter = 'all') {
     const tbody = document.getElementById('inquiriesTableBody');
     if (!tbody) return;
 
-    if (EddyStore.inquiries.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 2.5rem; color: var(--text-inverse-muted);">No collector inquiries recorded.</td></tr>`;
+    let items = [...EddyStore.inquiries];
+
+    if (statusFilter && statusFilter !== 'all') {
+      items = items.filter(i => (i.status || 'Pending').toLowerCase() === statusFilter.toLowerCase());
+    }
+
+    if (filterTerm) {
+      items = items.filter(i =>
+        (i.id || '').toLowerCase().includes(filterTerm) ||
+        (i.collectorName || '').toLowerCase().includes(filterTerm) ||
+        (i.collectorEmail || '').toLowerCase().includes(filterTerm) ||
+        (i.collectorPhone || '').toLowerCase().includes(filterTerm) ||
+        (i.artworkTitle || '').toLowerCase().includes(filterTerm) ||
+        (i.notes || '').toLowerCase().includes(filterTerm)
+      );
+    }
+
+    if (items.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 2.5rem; color: var(--text-inverse-muted);">No customer inquiries found${filterTerm || statusFilter !== 'all' ? ' matching your filters' : ''}.</td></tr>`;
       return;
     }
 
-    tbody.innerHTML = EddyStore.inquiries.map(inq => `
+    tbody.innerHTML = items.map(inq => {
+      const artworkPriceFormatted = inq.artworkPrice ? EddyStore.formatPrice(inq.artworkPrice) : '';
+      const dateStr = inq.date ? new Date(inq.date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'Recent';
+      return `
       <tr>
         <td>
-          <div style="font-weight: 600; color: #fff;">${inq.id}</div>
-          <div style="font-size: 0.72rem; color: var(--text-inverse-muted);">${new Date(inq.date).toLocaleDateString()}</div>
+          <div style="font-weight: 600; color: var(--accent-gold);">${inq.id}</div>
+          <div style="font-size: 0.72rem; color: var(--text-inverse-muted); margin-top: 2px;">${dateStr}</div>
         </td>
         <td>
           <strong>${inq.artworkTitle}</strong>
-          <div style="font-size: 0.75rem; color: var(--text-inverse-muted);">${inq.framePreference || 'Studio Framing'}</div>
+          ${artworkPriceFormatted ? `<div style="font-size: 0.75rem; color: var(--accent-gold); font-weight: 500;">${artworkPriceFormatted}</div>` : ''}
+          <div style="font-size: 0.72rem; color: var(--text-inverse-muted);">${inq.framePreference || 'Studio Stand/Frame'}</div>
         </td>
         <td>
-          <div>${inq.collectorName}</div>
-          <div style="font-size: 0.75rem; color: var(--accent-gold);"><a href="mailto:${inq.collectorEmail}">${inq.collectorEmail}</a></div>
-          <div style="font-size: 0.75rem; color: var(--text-inverse-muted);">${inq.collectorPhone || ''}</div>
+          <div style="font-weight: 500; color: #fff;">${inq.collectorName}</div>
+          <div style="font-size: 0.75rem; color: var(--accent-gold);"><a href="mailto:${inq.collectorEmail}" style="color: var(--accent-gold); text-decoration: underline;">${inq.collectorEmail}</a></div>
+          ${inq.collectorPhone ? `<div style="font-size: 0.72rem; color: var(--text-inverse-muted);">${inq.collectorPhone}</div>` : ''}
         </td>
         <td style="max-width: 240px;">
-          <div style="font-size: 0.82rem; color: #ccc; font-style: italic;">"${inq.notes || 'General acquisition inquiry.'}"</div>
-          ${inq.curatorNotes ? `<div style="font-size: 0.75rem; color: var(--accent-gold); margin-top: 4px;">Curator Note: ${inq.curatorNotes}</div>` : ''}
+          <div style="font-size: 0.82rem; color: #ddd; font-style: italic;">"${inq.notes || 'Inquired about purchasing this artwork.'}"</div>
+          ${inq.curatorNotes ? `<div style="font-size: 0.72rem; color: var(--accent-gold); margin-top: 6px; padding: 2px 6px; background: rgba(194, 165, 126, 0.1); border-radius: 2px;">Note: ${inq.curatorNotes}</div>` : ''}
         </td>
         <td>
           <select class="status-dropdown" onchange="AdminApp.updateInquiryStatus('${inq.id}', this.value)">
@@ -445,10 +506,14 @@ const AdminApp = {
           </select>
         </td>
         <td>
-          <button class="btn-admin-action edit" onclick="AdminApp.addCuratorNote('${inq.id}')">Note</button>
+          <div style="display: flex; gap: 4px;">
+            <button class="btn-admin-action edit" onclick="AdminApp.addCuratorNote('${inq.id}')" title="Add Private Follow-up Note">+ Note</button>
+            <a href="mailto:${inq.collectorEmail}?subject=Regarding your inquiry for ${encodeURIComponent(inq.artworkTitle)}" class="btn-admin-action" style="background:#252422; color:#fff; border: 1px solid var(--border-dark);" title="Send Email to Client">Email ↗</a>
+          </div>
         </td>
       </tr>
-    `).join('');
+      `;
+    }).join('');
   },
 
   async updateArtworkStatus(id, newStatus) {

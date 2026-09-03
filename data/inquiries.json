@@ -1,5 +1,37 @@
 [
   {
+    "id": "inq-9999",
+    "artworkId": "art-01",
+    "artworkTitle": "Night Shadows in Warm Earth",
+    "artworkArtist": "",
+    "artworkPrice": 24500,
+    "artworkImage": "",
+    "collectorName": "Real Client Inquiry Test",
+    "collectorEmail": "client@example.com",
+    "collectorPhone": "+250 788 123 456",
+    "framePreference": "Gold Brass Frame",
+    "notes": "I would like to order this piece with delivery to Kigali.",
+    "status": "Pending",
+    "date": "2026-09-03T09:11:42.196Z",
+    "curatorNotes": "Inquiry received. Awaiting curator assignment."
+  },
+  {
+    "id": "inq-1899",
+    "artworkId": "art-01",
+    "artworkTitle": "Night Shadows in Warm Earth",
+    "artworkArtist": "",
+    "artworkPrice": 24500,
+    "artworkImage": "",
+    "collectorName": "Test User",
+    "collectorEmail": "test@example.com",
+    "collectorPhone": "+1 234 567 8900",
+    "framePreference": "Floating Black Oak Frame",
+    "notes": "This is a test inquiry to see if it records",
+    "status": "Pending",
+    "date": "2026-09-03T09:05:46.903Z",
+    "curatorNotes": "Inquiry received. Awaiting curator assignment."
+  },
+  {
     "id": "inq-5207",
     "artworkId": "art-01",
     "artworkTitle": "Night Shadows in Warm Earth",
@@ -32,22 +64,6 @@
     "curatorNotes": "Sent delivery details and high-resolution photos."
   },
   {
-    "id": "inq-101",
-    "artworkId": "art-04",
-    "artworkTitle": "Warm Terracotta Abstract",
-    "artworkArtist": "Clara Beauchamp",
-    "artworkPrice": 22000,
-    "artworkImage": "images/art-04.jpg",
-    "collectorName": "John Sterling",
-    "collectorEmail": "a.sterling@mayfairholdings.co.uk",
-    "collectorPhone": "+44 20 7946 0912",
-    "framePreference": "Solid Walnut Floating Frame",
-    "notes": "Looking to purchase this piece with insured delivery to London.",
-    "status": "Contacted",
-    "date": "2026-08-28T14:20:00Z",
-    "curatorNotes": "Spoke with client. Provided Certificate of Authenticity and shipping options."
-  },
-  {
     "id": "inq-102",
     "artworkId": "art-01",
     "artworkTitle": "Night Shadows in Warm Earth",
@@ -64,22 +80,6 @@
     "curatorNotes": "Inquiry received. Awaiting client confirmation."
   },
   {
-    "id": "inq-103",
-    "artworkId": "art-05",
-    "artworkTitle": "Architectural Steel & Stone",
-    "artworkArtist": "Kaito Moriyama",
-    "artworkPrice": 31000,
-    "artworkImage": "images/art-05.jpg",
-    "collectorName": "Kenzo Takahashi",
-    "collectorEmail": "takahashi@ginzacurate.jp",
-    "collectorPhone": "+81 3 5555 0142",
-    "framePreference": "Integrated Steel Stand",
-    "notes": "Purchase completed.",
-    "status": "Closed/Sold",
-    "date": "2026-08-15T11:00:00Z",
-    "curatorNotes": "Payment completed. Artwork safely packaged and delivered."
-  },
-  {
     "id": "inq-104",
     "artworkId": "art-02",
     "artworkTitle": "Modern Bronze Form",
@@ -94,5 +94,37 @@
     "status": "Invoice Sent",
     "date": "2026-08-30T16:15:00Z",
     "curatorNotes": "Invoice sent to client. Awaiting payment confirmation."
+  },
+  {
+    "id": "inq-101",
+    "artworkId": "art-04",
+    "artworkTitle": "Warm Terracotta Abstract",
+    "artworkArtist": "Clara Beauchamp",
+    "artworkPrice": 22000,
+    "artworkImage": "images/art-04.jpg",
+    "collectorName": "John Sterling",
+    "collectorEmail": "a.sterling@mayfairholdings.co.uk",
+    "collectorPhone": "+44 20 7946 0912",
+    "framePreference": "Solid Walnut Floating Frame",
+    "notes": "Looking to purchase this piece with insured delivery to London.",
+    "status": "Contacted",
+    "date": "2026-08-28T14:20:00Z",
+    "curatorNotes": "Spoke with client. Provided Certificate of Authenticity and shipping options."
+  },
+  {
+    "id": "inq-103",
+    "artworkId": "art-05",
+    "artworkTitle": "Architectural Steel & Stone",
+    "artworkArtist": "Kaito Moriyama",
+    "artworkPrice": 31000,
+    "artworkImage": "images/art-05.jpg",
+    "collectorName": "Kenzo Takahashi",
+    "collectorEmail": "takahashi@ginzacurate.jp",
+    "collectorPhone": "+81 3 5555 0142",
+    "framePreference": "Integrated Steel Stand",
+    "notes": "Purchase completed.",
+    "status": "Closed/Sold",
+    "date": "2026-08-15T11:00:00Z",
+    "curatorNotes": "Payment completed. Artwork safely packaged and delivered."
   }
 ]
