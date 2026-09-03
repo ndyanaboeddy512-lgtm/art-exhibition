@@ -64,7 +64,7 @@ The server will start at: `http://localhost:3000`
 | Role / Portal | URL | Demo Email | Demo Password |
 |---|---|---|---|
 | **Gallery Exhibition** | `http://localhost:3000/` | *Public Access* | — |
-| **Curator Directorate** | `http://localhost:3000/admin.html` | `admin@eddypro.com` | `curator2026` |
+| **Curator Directorate** | `http://localhost:3000/admin.html` | `edsonndyanabo84@gmail.com` | `EddyPro256` |
 | **Collector Salon** | `http://localhost:3000/auth.html` | `a.sterling@mayfairholdings.co.uk` | `password123` |
 | **Collector Salon (Alt)** | `http://localhost:3000/auth.html` | `genevieve@manor.fr` | `password123` |
 

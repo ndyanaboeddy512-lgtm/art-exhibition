@@ -111,7 +111,7 @@ async function migrate() {
          ON DUPLICATE KEY UPDATE
            name = VALUES(name),
            password = VALUES(password)`,
-        ['adm-1', adm.name || '55 smartCREATIVES Admin', adm.email || 'admin@eddypro.com', adm.password || 'curator2026', adm.role || 'admin']
+        ['adm-1', adm.name || '55 smartCREATIVES Admin', adm.email || 'edsonndyanabo84@gmail.com', adm.password || 'EddyPro256', adm.role || 'admin']
       );
       console.log(`✓ Admin credentials migrated successfully.`);
     }

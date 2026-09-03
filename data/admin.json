@@ -1,7 +1,11 @@
 {
+  "id": "adm-1",
   "name": "55 smartCREATIVES Admin",
-  "email": "admin@eddypro.com",
-  "password": "curator2026",
+  "email": "edsonndyanabo84@gmail.com",
+  "password": "EddyPro256",
   "role": "admin",
-  "lastLogin": "2026-09-02T17:46:07.226Z"
+  "last_login": null,
+  "created_at": "2026-09-03T09:48:50.000Z",
+  "updated_at": "2026-09-03T10:32:23.000Z",
+  "lastLogin": "2026-09-03T10:35:48.362Z"
 }

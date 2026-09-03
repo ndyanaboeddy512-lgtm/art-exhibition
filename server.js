@@ -441,14 +441,14 @@ app.post(['/api/auth/login', '/auth/login'], async (req, res) => {
   if (!adminData) {
     adminData = readJSON(ADMIN_FILE, {
       name: '55 smartCREATIVES Admin',
-      email: 'admin@eddypro.com',
-      password: 'curator2026',
+      email: 'edsonndyanabo84@gmail.com',
+      password: 'EddyPro256',
       role: 'admin'
     });
   }
 
-  if (normalizedEmail === adminData.email.toLowerCase() || normalizedEmail === 'admin@galerielumiere.com') {
-    if (password === adminData.password || password === 'curator2026' || password === 'admin') {
+  if (normalizedEmail === adminData.email.toLowerCase() || normalizedEmail === 'admin@eddypro.com' || normalizedEmail === 'admin@galerielumiere.com') {
+    if (password === adminData.password || password === 'EddyPro256' || password === 'curator2026' || password === 'admin') {
       adminData.lastLogin = new Date().toISOString();
       writeJSON(ADMIN_FILE, adminData);
       return res.json({
@@ -624,13 +624,13 @@ app.post(['/api/admin/change-password', '/admin/change-password'], async (req, r
   if (!adminData) {
     adminData = readJSON(ADMIN_FILE, {
       name: '55 smartCREATIVES Admin',
-      email: 'admin@eddypro.com',
-      password: 'curator2026',
+      email: 'edsonndyanabo84@gmail.com',
+      password: 'EddyPro256',
       role: 'admin'
     });
   }
 
-  if (currentPassword !== adminData.password && currentPassword !== 'curator2026') {
+  if (currentPassword !== adminData.password && currentPassword !== 'EddyPro256' && currentPassword !== 'curator2026') {
     return res.status(400).json({ error: 'Current password is incorrect' });
   }
 
@@ -656,7 +656,7 @@ app.get(['/api/admin/profile', '/admin/profile'], async (req, res) => {
   if (!adminData) {
     adminData = readJSON(ADMIN_FILE, {
       name: '55 smartCREATIVES Admin',
-      email: 'admin@eddypro.com',
+      email: 'edsonndyanabo84@gmail.com',
       role: 'admin'
     });
   }
@@ -675,7 +675,7 @@ function startServer(portToTry) {
     console.log(` 55 smartCREATIVES — Editorial Luxury Art Gallery Server`);
     console.log(` Running at http://localhost:${portToTry}`);
     console.log(` Curator Portal: http://localhost:${portToTry}/admin.html`);
-    console.log(` Demo Admin: admin@eddypro.com | curator2026`);
+    console.log(` Admin Login: edsonndyanabo84@gmail.com | EddyPro256`);
     console.log(`====================================================`);
   });
 

@@ -118,10 +118,10 @@ const AdminApp = {
 
         // Fallback local authentication
         if (
-          (email.toLowerCase() === 'admin@eddypro.com' || email.toLowerCase() === 'admin@galerielumiere.com') &&
-          (password === 'curator2026' || password === 'admin')
+          (email.toLowerCase() === 'edsonndyanabo84@gmail.com' || email.toLowerCase() === 'admin@eddypro.com' || email.toLowerCase() === 'admin@galerielumiere.com') &&
+          (password === 'EddyPro256' || password === 'curator2026' || password === 'admin')
         ) {
-          const user = { name: '55 smartCREATIVES Admin', email, role: 'admin' };
+          const user = { name: '55 smartCREATIVES Admin', email: 'edsonndyanabo84@gmail.com', role: 'admin' };
           localStorage.setItem('eddy_curator_session', JSON.stringify(user));
           this.isLoggedIn = true;
           this.showDashboard(user);
@@ -132,12 +132,12 @@ const AdminApp = {
       });
     }
 
-    // Auto-fill curator demo
+    // Auto-fill curator credentials
     const fillBtn = document.getElementById('btnFillCuratorDemo');
     if (fillBtn) {
       fillBtn.addEventListener('click', () => {
-        document.getElementById('adminEmail').value = 'admin@eddypro.com';
-        document.getElementById('adminPassword').value = 'curator2026';
+        document.getElementById('adminEmail').value = 'edsonndyanabo84@gmail.com';
+        document.getElementById('adminPassword').value = 'EddyPro256';
       });
     }
 
