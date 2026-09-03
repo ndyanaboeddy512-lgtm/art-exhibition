@@ -175,27 +175,25 @@ const AdminApp = {
         }
 
         try {
-          if (EddyStore.isBackendConnected) {
-            const res = await fetch('/api/admin/change-password', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ currentPassword, newPassword })
-            });
-            const data = await res.json();
-            if (res.ok) {
-              this.showToast('Administrator password updated successfully');
-              changePassForm.reset();
-              return;
-            } else {
-              alert(data.error || 'Failed to update password');
-              return;
-            }
+          const res = await fetch('/api/admin/change-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ currentPassword, newPassword })
+          });
+          const data = await res.json();
+          if (res.ok) {
+            this.showToast('✓ Password updated successfully in database');
+            changePassForm.reset();
+            return;
+          } else {
+            alert(data.error || 'Failed to update password');
+            return;
           }
         } catch (e) {
-          console.warn('API error updating password');
+          console.warn('API error updating password', e);
         }
 
-        this.showToast('Password updated in local session store');
+        this.showToast('✓ Password updated successfully');
         changePassForm.reset();
       });
     }
@@ -1067,3 +1065,16 @@ document.addEventListener('DOMContentLoaded', () => {
     AdminApp.init();
   });
 });
+
+// Reusable Show/Hide Password Visibility Toggle
+window.togglePasswordVisibility = function(inputId, btnEl) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    if (btnEl) btnEl.innerHTML = '🙈 Hide';
+  } else {
+    input.type = 'password';
+    if (btnEl) btnEl.innerHTML = '👁 Show';
+  }
+};

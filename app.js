@@ -712,3 +712,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 });
 
+// Show / Hide Password Visibility Toggle Helper
+window.togglePasswordVisibility = function(inputId, btnEl) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    if (btnEl) btnEl.innerHTML = '🙈 Hide';
+  } else {
+    input.type = 'password';
+    if (btnEl) btnEl.innerHTML = '👁 Show';
+  }
+};
+

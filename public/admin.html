@@ -76,7 +76,7 @@
           ← View Public Gallery
         </a>
         <button id="adminSettingsBtn" class="btn-secondary" style="color: var(--accent-gold); border-color: var(--border-gold); font-size: 0.75rem; padding: 6px 14px; display: none;">
-          Admin Password
+          🔑 Change Password
         </button>
         <button id="adminLogoutBtn" class="btn-secondary" style="color: #ff6b6b; border-color: rgba(255,107,107,0.3); font-size: 0.75rem; padding: 6px 14px; display: none;">
           Sign Out
@@ -112,8 +112,16 @@
               <input type="email" id="adminEmail" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark);" placeholder="edsonndyanabo84@gmail.com" required>
             </div>
             <div class="form-group">
-              <label for="adminPassword" style="color: #ccc;">Password</label>
-              <input type="password" id="adminPassword" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark);" placeholder="••••••••" required>
+              <label for="adminPassword" style="color: #ccc; display: flex; justify-content: space-between; align-items: center;">
+                <span>Password</span>
+                <span style="font-size: 0.72rem; color: var(--text-inverse-muted);">Click eye to see password</span>
+              </label>
+              <div class="password-input-wrap">
+                <input type="password" id="adminPassword" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark);" placeholder="••••••••" required>
+                <button type="button" class="password-toggle-btn" onclick="window.togglePasswordVisibility('adminPassword', this)" title="Show or Hide Password">
+                  👁 Show
+                </button>
+              </div>
             </div>
 
             <div id="adminLoginError" style="display: none; color: #ff6b6b; font-size: 0.82rem; margin-bottom: 1rem; text-align: center;">
@@ -139,7 +147,7 @@
             Customer Inquiries
           </button>
           <button class="admin-tab-btn" id="tabSecurityBtn" onclick="AdminApp.switchTab('security')">
-            Admin Settings & Password
+            🔑 Change Password & Settings
           </button>
         </div>
 
@@ -289,25 +297,35 @@
           </div>
 
           <form id="changePasswordForm">
-            <h4 style="color: #fff; font-size: 1.2rem; margin-bottom: 1rem;">Update Admin Password</h4>
+            <h4 style="color: #fff; font-size: 1.25rem; margin-bottom: 0.35rem;">🔑 Change Admin Password</h4>
+            <p style="color: var(--text-inverse-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">Enter your current password and set a new password. Click "👁 Show" to see characters while typing.</p>
             
             <div class="form-group">
               <label style="color: #ccc;">Current Password</label>
-              <input type="password" id="currentAdminPass" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark);" placeholder="Current password" required>
+              <div class="password-input-wrap">
+                <input type="password" id="currentAdminPass" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark);" placeholder="Current password" required>
+                <button type="button" class="password-toggle-btn" onclick="window.togglePasswordVisibility('currentAdminPass', this)" title="Show or Hide Password">👁 Show</button>
+              </div>
             </div>
 
             <div class="form-row">
               <div class="form-group">
                 <label style="color: #ccc;">New Password</label>
-                <input type="password" id="newAdminPass" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark);" placeholder="Min 4 characters" minlength="4" required>
+                <div class="password-input-wrap">
+                  <input type="password" id="newAdminPass" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark);" placeholder="Min 4 characters" minlength="4" required>
+                  <button type="button" class="password-toggle-btn" onclick="window.togglePasswordVisibility('newAdminPass', this)" title="Show or Hide Password">👁 Show</button>
+                </div>
               </div>
               <div class="form-group">
                 <label style="color: #ccc;">Confirm New Password</label>
-                <input type="password" id="confirmAdminPass" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark);" placeholder="Confirm new password" minlength="4" required>
+                <div class="password-input-wrap">
+                  <input type="password" id="confirmAdminPass" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark);" placeholder="Confirm new password" minlength="4" required>
+                  <button type="button" class="password-toggle-btn" onclick="window.togglePasswordVisibility('confirmAdminPass', this)" title="Show or Hide Password">👁 Show</button>
+                </div>
               </div>
             </div>
 
-            <button type="submit" class="btn-primary" style="background: var(--accent-gold); border-color: var(--accent-gold); width: 100%;">
+            <button type="submit" class="btn-primary" style="background: var(--accent-gold); border-color: var(--accent-gold); width: 100%; font-weight: 600; padding: 12px; margin-top: 0.5rem;">
               Save New Admin Password
             </button>
           </form>
