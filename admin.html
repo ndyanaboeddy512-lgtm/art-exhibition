@@ -525,11 +525,17 @@
           <div id="detailCollectorPhone" style="font-size: 0.82rem; color: #aaa;">📞 +1 555-0199</div>
         </div>
 
-        <div style="background: #121211; padding: 1rem; border: 1px solid var(--border-dark); border-radius: 4px;">
-          <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--accent-gold); letter-spacing: 0.1em; margin-bottom: 8px;">Artwork Inquired</h4>
-          <div id="detailArtworkTitle" style="font-size: 1.05rem; font-weight: 600; color: #fff; margin-bottom: 4px;">Artwork Title</div>
-          <div id="detailArtworkPrice" style="font-size: 0.9rem; color: var(--accent-gold); font-weight: 600; margin-bottom: 4px;">$0</div>
-          <div id="detailFraming" style="font-size: 0.8rem; color: #aaa;">Framing Choice</div>
+        <div style="background: #121211; padding: 1rem; border: 1px solid var(--border-dark); border-radius: 4px; display: flex; gap: 1rem; align-items: center;">
+          <img id="detailArtworkImage" src="images/art-01.jpg" alt="Artwork Thumbnail" style="width: 76px; height: 76px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-dark); flex-shrink: 0;" onerror="this.src='images/art-01.jpg'">
+          <div style="flex: 1; min-width: 0;">
+            <h4 style="font-size: 0.72rem; text-transform: uppercase; color: var(--accent-gold); letter-spacing: 0.1em; margin-bottom: 3px;">Artwork Inquired</h4>
+            <div id="detailArtworkTitle" style="font-size: 1.05rem; font-weight: 600; color: #fff; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Artwork Title</div>
+            <div id="detailArtworkArtist" style="font-size: 0.78rem; color: #bbb; margin-bottom: 3px;">by 55 smartCREATIVES</div>
+            <div id="detailArtworkPrice" style="font-size: 0.9rem; color: var(--accent-gold); font-weight: 600; margin-bottom: 3px;">$0</div>
+            <div id="detailArtworkDetails" style="font-size: 0.72rem; color: var(--text-inverse-muted); margin-bottom: 3px;">Medium • Dimensions</div>
+            <div id="detailFraming" style="font-size: 0.72rem; color: #aaa; margin-bottom: 4px;">Framing Choice</div>
+            <a id="detailArtworkLink" href="#" target="_blank" style="font-size: 0.72rem; color: var(--accent-gold); text-decoration: underline;">View Live Piece ↗</a>
+          </div>
         </div>
       </div>
 

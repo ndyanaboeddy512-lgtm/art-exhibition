@@ -556,6 +556,12 @@ const AdminApp = {
       const artworkPriceFormatted = inq.artworkPrice ? EddyStore.formatPrice(inq.artworkPrice) : '';
       const dateStr = inq.date ? new Date(inq.date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'Recent';
 
+      // Look up artwork in catalog for high-res photo, artist, medium, and specs
+      const art = (EddyStore.artworks || []).find(a => a.id === inq.artworkId || a.title === inq.artworkTitle);
+      const artworkImg = inq.artworkImage || (art ? art.image : 'images/art-01.jpg');
+      const artworkArtist = inq.artworkArtist || (art ? art.artist : '55 smartCREATIVES');
+      const artworkSpecs = art ? `${art.medium || 'Fine Art'}${art.dimensions ? ' • ' + art.dimensions : ''}` : '';
+
       const badgeHtml = isNew
         ? `<span style="background: var(--accent-gold); color: #000; font-weight: 700; font-size: 0.68rem; padding: 2px 7px; border-radius: 2px; letter-spacing: 0.05em; display: inline-block; margin-bottom: 3px;">✦ NEW</span>`
         : `<span style="background: rgba(255,255,255,0.08); color: #81c784; font-weight: 600; font-size: 0.68rem; padding: 2px 6px; border-radius: 2px; display: inline-block; margin-bottom: 3px;">✓ OPENED</span>`;
@@ -568,9 +574,16 @@ const AdminApp = {
           <div style="font-size: 0.72rem; color: var(--text-inverse-muted); margin-top: 2px;">${dateStr}</div>
         </td>
         <td>
-          <strong style="color: #fff;">${inq.artworkTitle}</strong>
-          ${artworkPriceFormatted ? `<div style="font-size: 0.75rem; color: var(--accent-gold); font-weight: 500;">${artworkPriceFormatted}</div>` : ''}
-          <div style="font-size: 0.72rem; color: var(--text-inverse-muted);">${inq.framePreference || 'Studio Stand/Frame'}</div>
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <img src="${artworkImg}" alt="${inq.artworkTitle}" style="width: 54px; height: 54px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-dark); flex-shrink: 0;" onerror="this.src='images/art-01.jpg'">
+            <div>
+              <strong style="color: #fff; display: block; font-size: 0.9rem; line-height: 1.25; margin-bottom: 2px;">${inq.artworkTitle}</strong>
+              <div style="font-size: 0.75rem; color: #aaa;">by ${artworkArtist}</div>
+              ${artworkPriceFormatted ? `<div style="font-size: 0.8rem; color: var(--accent-gold); font-weight: 600; margin-top: 2px;">${artworkPriceFormatted}</div>` : ''}
+              ${artworkSpecs ? `<div style="font-size: 0.7rem; color: var(--text-inverse-muted); margin-top: 1px;">${artworkSpecs}</div>` : ''}
+              <div style="font-size: 0.72rem; color: var(--text-inverse-muted); margin-top: 2px;">🖼 ${inq.framePreference || 'Studio Stand/Frame'}</div>
+            </div>
+          </div>
         </td>
         <td>
           <div style="font-weight: 600; color: #fff;">${inq.collectorName}</div>
@@ -647,10 +660,39 @@ const AdminApp = {
       phoneEl.textContent = inq.collectorPhone ? `📞 ${inq.collectorPhone}` : '📞 No phone provided';
     }
 
+    // Look up artwork in catalog for image, artist, medium, and specs
+    const art = (EddyStore.artworks || []).find(a => a.id === inq.artworkId || a.title === inq.artworkTitle);
+    const artworkImg = inq.artworkImage || (art ? art.image : 'images/art-01.jpg');
+    const artworkArtist = inq.artworkArtist || (art ? art.artist : '55 smartCREATIVES');
+    const artworkSpecs = art ? `${art.medium || 'Fine Art'}${art.dimensions ? ' • ' + art.dimensions : ''}` : '';
+
+    const imgEl = document.getElementById('detailArtworkImage');
+    if (imgEl) {
+      imgEl.src = artworkImg;
+      imgEl.alt = inq.artworkTitle || 'Artwork Thumbnail';
+    }
+
     document.getElementById('detailArtworkTitle').textContent = inq.artworkTitle || 'General Acquisition Inquiry';
+    
+    const artistEl = document.getElementById('detailArtworkArtist');
+    if (artistEl) artistEl.textContent = `by ${artworkArtist}`;
+
+    const specsEl = document.getElementById('detailArtworkDetails');
+    if (specsEl) specsEl.textContent = artworkSpecs;
+
     document.getElementById('detailArtworkPrice').textContent = inq.artworkPrice ? EddyStore.formatPrice(inq.artworkPrice) : '';
     document.getElementById('detailFraming').textContent = inq.framePreference ? `Framing: ${inq.framePreference}` : 'Framing: Standard Presentation';
     document.getElementById('detailInquiryNotes').textContent = inq.notes ? `"${inq.notes}"` : '"Client inquired about purchasing this artwork."';
+
+    const linkEl = document.getElementById('detailArtworkLink');
+    if (linkEl) {
+      if (art && art.id) {
+        linkEl.href = `artwork.html?id=${art.id}`;
+        linkEl.style.display = 'inline-block';
+      } else {
+        linkEl.style.display = 'none';
+      }
+    }
 
     const statusSel = document.getElementById('detailStatusSelect');
     if (statusSel) statusSel.value = inq.status || 'Pending';
