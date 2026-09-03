@@ -1,5 +1,5 @@
 /**
- * EDDY PRO — Editorial Luxury Fine Art Gallery
+ * 55 smartCREATIVES — Editorial Luxury Fine Art Gallery
  * Core Application Engine & Data Bridge
  */
 
@@ -101,7 +101,7 @@ const DEFAULT_ARTWORKS = [
     status: "Available",
     framing: "Integrated weighted architectural stand",
     frameOptions: ["Integrated Steel Stand", "Gallery Pedestal (Optional)"],
-    provenance: "Direct studio piece. Verified authentic by Eddy Pro Gallery.",
+    provenance: "Direct studio piece. Verified authentic by 55 smartCREATIVES Gallery.",
     curatorialStatement: "A bold sculpture combining dark structural steel with hand-carved stone, inspired by modern architectural geometry.",
     featured: false,
     image: "images/art-05.jpg",
@@ -214,7 +214,7 @@ const EddyStore = {
         this.artworks = await res.json();
         this.isBackendConnected = true;
         this.saveArtworksLocally();
-        console.log(`✓ Connected to Eddy Pro Express Backend (${this.artworks.length} artworks loaded)`);
+        console.log(`✓ Connected to 55 smartCREATIVES Express Backend (${this.artworks.length} artworks loaded)`);
       } else {
         throw new Error('API responded with non-200');
       }

@@ -1,5 +1,5 @@
 /**
- * EDDY PRO — Curator Administration Dashboard Engine
+ * 55 smartCREATIVES — Admin Dashboard Engine
  * Complete Product Management (Add, Edit, Delete, Prices, Details) & Security
  */
 
@@ -105,7 +105,7 @@ const AdminApp = {
           (email.toLowerCase() === 'admin@eddypro.com' || email.toLowerCase() === 'admin@galerielumiere.com') &&
           (password === 'curator2026' || password === 'admin')
         ) {
-          const user = { name: 'Eddy Pro Admin', email, role: 'admin' };
+          const user = { name: '55 smartCREATIVES Admin', email, role: 'admin' };
           localStorage.setItem('eddy_curator_session', JSON.stringify(user));
           this.isLoggedIn = true;
           this.showDashboard(user);

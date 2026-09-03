@@ -1,5 +1,5 @@
 {
-  "name": "eddy-pro-art-gallery",
+  "name": "55-smartcreatives-art-gallery",
   "version": "1.0.0",
   "description": "Editorial Luxury Art Gallery & Curated Exhibition Platform",
   "main": "server.js",
@@ -18,6 +18,6 @@
     "editorial-luxury",
     "curated-catalog"
   ],
-  "author": "Eddy Pro",
+  "author": "55 smartCREATIVES",
   "license": "MIT"
 }

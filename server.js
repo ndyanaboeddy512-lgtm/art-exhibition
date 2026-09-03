@@ -123,7 +123,7 @@ app.get(['/admin', '/admin.html'], (req, res) => {
 
 // Health check
 app.get(['/api/health', '/health'], (req, res) => {
-  res.json({ status: 'ok', gallery: 'Eddy Pro — Editorial Fine Art', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', gallery: '55 smartCREATIVES — Editorial Fine Art', timestamp: new Date().toISOString() });
 });
 
 // GET all artworks
@@ -167,7 +167,7 @@ app.post('/api/artworks', (req, res) => {
   const newArtwork = {
     id: 'art-' + Date.now().toString(36),
     title: req.body.title || 'Untitled Masterwork',
-    artist: req.body.artist || 'Eddy Pro Studio',
+    artist: req.body.artist || '55 smartCREATIVES Studio',
     year: parseInt(req.body.year, 10) || new Date().getFullYear(),
     medium: req.body.medium || 'Mixed media on linen',
     dimensions: req.body.dimensions || '150 × 120 cm / 59 × 47 in',
@@ -285,7 +285,7 @@ app.post('/api/auth/login', (req, res) => {
   
   // Admin curator verification against data/admin.json
   const adminData = readJSON(ADMIN_FILE, {
-    name: 'Eddy Pro Senior Curator',
+    name: '55 smartCREATIVES Admin',
     email: 'admin@eddypro.com',
     password: 'curator2026',
     role: 'admin'
@@ -429,7 +429,7 @@ app.put('/api/users/profile', (req, res) => {
 app.post('/api/admin/change-password', (req, res) => {
   const { currentPassword, newPassword } = req.body;
   const adminData = readJSON(ADMIN_FILE, {
-    name: 'Eddy Pro Senior Curator',
+    name: '55 smartCREATIVES Admin',
     email: 'admin@eddypro.com',
     password: 'curator2026',
     role: 'admin'
@@ -451,7 +451,7 @@ app.post('/api/admin/change-password', (req, res) => {
 // Admin profile info
 app.get('/api/admin/profile', (req, res) => {
   const adminData = readJSON(ADMIN_FILE, {
-    name: 'Eddy Pro Senior Curator',
+    name: '55 smartCREATIVES Admin',
     email: 'admin@eddypro.com',
     role: 'admin'
   });
@@ -467,7 +467,7 @@ app.get('/api/admin/profile', (req, res) => {
 function startServer(portToTry) {
   const server = app.listen(portToTry, () => {
     console.log(`====================================================`);
-    console.log(` Eddy Pro — Editorial Luxury Art Gallery Server`);
+    console.log(` 55 smartCREATIVES — Editorial Luxury Art Gallery Server`);
     console.log(` Running at http://localhost:${portToTry}`);
     console.log(` Curator Portal: http://localhost:${portToTry}/admin.html`);
     console.log(` Demo Admin: admin@eddypro.com | curator2026`);
