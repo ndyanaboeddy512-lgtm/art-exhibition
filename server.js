@@ -3,9 +3,13 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const db = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Initialize MySQL database in background
+db.initDatabase().catch(err => console.warn('Database init notice:', err.message));
 
 // Enable CORS and generous JSON body size for high-res base64 artwork uploads
 app.use(cors());
@@ -147,17 +151,38 @@ app.get(['/admin', '/admin.html'], (req, res) => {
 
 // Health check
 app.get(['/api/health', '/health'], (req, res) => {
-  res.json({ status: 'ok', gallery: '55 smartCREATIVES — Editorial Fine Art', timestamp: new Date().toISOString() });
+  res.json({
+    status: 'ok',
+    gallery: '55 smartCREATIVES — Editorial Fine Art',
+    database: db.isAvailable ? 'mysql' : 'json-fallback',
+    timestamp: new Date().toISOString()
+  });
 });
 
 // GET all artworks
-app.get(['/api/artworks', '/artworks'], (req, res) => {
+app.get(['/api/artworks', '/artworks'], async (req, res) => {
+  if (db.isAvailable) {
+    try {
+      const artworks = await db.getArtworks();
+      if (artworks && artworks.length > 0) return res.json(artworks);
+    } catch (err) {
+      console.warn('MySQL getArtworks notice, falling back:', err.message);
+    }
+  }
   const artworks = readJSON(ARTWORKS_FILE);
   res.json(artworks);
 });
 
 // GET single artwork by ID
-app.get(['/api/artworks/:id', '/artworks/:id'], (req, res) => {
+app.get(['/api/artworks/:id', '/artworks/:id'], async (req, res) => {
+  if (db.isAvailable) {
+    try {
+      const artwork = await db.getArtworkById(req.params.id);
+      if (artwork) return res.json(artwork);
+    } catch (err) {
+      console.warn('MySQL getArtworkById notice, falling back:', err.message);
+    }
+  }
   const artworks = readJSON(ARTWORKS_FILE);
   const artwork = artworks.find(a => a.id === req.params.id);
   if (!artwork) {
@@ -177,15 +202,10 @@ app.post(['/api/upload', '/upload'], (req, res) => {
 });
 
 // POST new artwork (Admin)
-app.post(['/api/artworks', '/artworks'], (req, res) => {
-  const artworks = readJSON(ARTWORKS_FILE);
+app.post(['/api/artworks', '/artworks'], async (req, res) => {
   let imagePath = req.body.image || 'images/art-01.jpg';
   if (imagePath.startsWith('data:image/')) {
     imagePath = saveBase64Image(imagePath);
-  }
-
-  if (req.body.featured) {
-    artworks.forEach(a => { a.featured = false; });
   }
 
   const newArtwork = {
@@ -193,7 +213,7 @@ app.post(['/api/artworks', '/artworks'], (req, res) => {
     title: req.body.title || 'Untitled Masterwork',
     artist: req.body.artist || '55 smartCREATIVES Studio',
     year: parseInt(req.body.year, 10) || new Date().getFullYear(),
-    medium: req.body.medium || 'Mixed media on linen',
+    medium: req.body.medium || 'Fine Art',
     dimensions: req.body.dimensions || '150 × 120 cm / 59 × 47 in',
     price: parseFloat(req.body.price) || 15000,
     status: req.body.status || 'Available',
@@ -206,19 +226,28 @@ app.post(['/api/artworks', '/artworks'], (req, res) => {
     highResZoom: req.body.highResZoom || imagePath
   };
 
-  artworks.unshift(newArtwork);
+  let savedArtwork = newArtwork;
+  if (db.isAvailable) {
+    try {
+      const dbSaved = await db.createArtwork(newArtwork);
+      if (dbSaved) savedArtwork = dbSaved;
+    } catch (err) {
+      console.warn('MySQL createArtwork notice:', err.message);
+    }
+  }
+
+  const artworks = readJSON(ARTWORKS_FILE);
+  if (newArtwork.featured) {
+    artworks.forEach(a => { a.featured = false; });
+  }
+  artworks.unshift(savedArtwork);
   writeJSON(ARTWORKS_FILE, artworks);
-  res.status(201).json(newArtwork);
+
+  res.status(201).json(savedArtwork);
 });
 
 // PUT update artwork (Admin)
-app.put(['/api/artworks/:id', '/artworks/:id'], (req, res) => {
-  const artworks = readJSON(ARTWORKS_FILE);
-  const index = artworks.findIndex(a => a.id === req.params.id);
-  if (index === -1) {
-    return res.status(404).json({ error: 'Artwork not found' });
-  }
-
+app.put(['/api/artworks/:id', '/artworks/:id'], async (req, res) => {
   let updateData = { ...req.body };
   if (updateData.image && updateData.image.startsWith('data:image/')) {
     const savedPath = saveBase64Image(updateData.image);
@@ -226,30 +255,50 @@ app.put(['/api/artworks/:id', '/artworks/:id'], (req, res) => {
     updateData.highResZoom = savedPath;
   }
 
-  if (updateData.featured) {
-    artworks.forEach(a => { a.featured = false; });
+  let updatedArtwork = null;
+  if (db.isAvailable) {
+    try {
+      updatedArtwork = await db.updateArtwork(req.params.id, updateData);
+    } catch (err) {
+      console.warn('MySQL updateArtwork notice:', err.message);
+    }
   }
 
-  artworks[index] = {
-    ...artworks[index],
-    ...updateData,
-    id: artworks[index].id // preserve ID
-  };
+  const artworks = readJSON(ARTWORKS_FILE);
+  const index = artworks.findIndex(a => a.id === req.params.id);
+  if (index === -1 && !updatedArtwork) {
+    return res.status(404).json({ error: 'Artwork not found' });
+  }
 
-  if (updateData.price !== undefined) artworks[index].price = parseFloat(updateData.price) || 0;
-  if (updateData.year !== undefined) artworks[index].year = parseInt(updateData.year, 10) || new Date().getFullYear();
+  if (index > -1) {
+    if (updateData.featured) {
+      artworks.forEach(a => { a.featured = false; });
+    }
+    artworks[index] = { ...artworks[index], ...updateData, id: req.params.id };
+    if (updateData.price !== undefined) artworks[index].price = parseFloat(updateData.price) || 0;
+    if (updateData.year !== undefined) artworks[index].year = parseInt(updateData.year, 10) || new Date().getFullYear();
+    writeJSON(ARTWORKS_FILE, artworks);
+    if (!updatedArtwork) updatedArtwork = artworks[index];
+  }
 
-  writeJSON(ARTWORKS_FILE, artworks);
-  res.json(artworks[index]);
+  res.json(updatedArtwork);
 });
 
 // DELETE artwork (Admin)
-app.delete(['/api/artworks/:id', '/artworks/:id'], (req, res) => {
+app.delete(['/api/artworks/:id', '/artworks/:id'], async (req, res) => {
+  if (db.isAvailable) {
+    try {
+      await db.deleteArtwork(req.params.id);
+    } catch (err) {
+      console.warn('MySQL deleteArtwork notice:', err.message);
+    }
+  }
+
   let artworks = readJSON(ARTWORKS_FILE);
   const initialLength = artworks.length;
   artworks = artworks.filter(a => a.id !== req.params.id);
   
-  if (artworks.length === initialLength) {
+  if (artworks.length === initialLength && !db.isAvailable) {
     return res.status(404).json({ error: 'Artwork not found' });
   }
 
@@ -258,23 +307,28 @@ app.delete(['/api/artworks/:id', '/artworks/:id'], (req, res) => {
 });
 
 // GET inquiries
-app.get(['/api/inquiries', '/inquiries'], (req, res) => {
+app.get(['/api/inquiries', '/inquiries'], async (req, res) => {
+  if (db.isAvailable) {
+    try {
+      const dbInqs = await db.getInquiries();
+      if (dbInqs) return res.json(dbInqs);
+    } catch (err) {
+      console.warn('MySQL getInquiries notice, falling back:', err.message);
+    }
+  }
   const inquiries = readJSON(INQUIRIES_FILE);
   res.json(inquiries);
 });
 
 // POST new inquiry (Collector or Guest)
-app.post(['/api/inquiries', '/inquiries'], (req, res) => {
-  const inquiries = readJSON(INQUIRIES_FILE);
+app.post(['/api/inquiries', '/inquiries'], async (req, res) => {
   const newId = req.body.id || ('inq-' + Math.floor(1000 + Math.random() * 9000));
-  
-  const existingIdx = inquiries.findIndex(i => i.id === newId);
   const newInquiry = {
     id: newId,
     artworkId: req.body.artworkId || '',
     artworkTitle: req.body.artworkTitle || 'General Acquisition Inquiry',
     artworkArtist: req.body.artworkArtist || '',
-    artworkPrice: req.body.artworkPrice || 0,
+    artworkPrice: parseFloat(req.body.artworkPrice) || 0,
     artworkImage: req.body.artworkImage || '',
     collectorName: req.body.collectorName || 'Anonymous Collector',
     collectorEmail: req.body.collectorEmail || '',
@@ -288,27 +342,49 @@ app.post(['/api/inquiries', '/inquiries'], (req, res) => {
     curatorNotes: req.body.curatorNotes || 'Inquiry received. Awaiting curator assignment.'
   };
 
-  if (existingIdx > -1) {
-    inquiries[existingIdx] = { ...inquiries[existingIdx], ...newInquiry };
-  } else {
-    inquiries.unshift(newInquiry);
+  let savedInquiry = newInquiry;
+  if (db.isAvailable) {
+    try {
+      const dbResult = await db.createInquiry(newInquiry);
+      if (dbResult) savedInquiry = dbResult;
+      console.log(`✓ Inquiry saved in MySQL: ${savedInquiry.id} from ${savedInquiry.collectorName}`);
+    } catch (err) {
+      console.warn('MySQL createInquiry notice:', err.message);
+    }
   }
 
+  // Also maintain JSON fallback
+  const inquiries = readJSON(INQUIRIES_FILE);
+  const existingIdx = inquiries.findIndex(i => i.id === newId);
+  if (existingIdx > -1) {
+    inquiries[existingIdx] = { ...inquiries[existingIdx], ...savedInquiry };
+  } else {
+    inquiries.unshift(savedInquiry);
+  }
   writeJSON(INQUIRIES_FILE, inquiries);
-  console.log(`✓ Inquiry logged: ${newInquiry.id} from ${newInquiry.collectorName} (opened: ${newInquiry.opened})`);
-  res.status(201).json(newInquiry);
+
+  res.status(201).json(savedInquiry);
 });
 
 // POST sync multiple inquiries from client
-app.post(['/api/inquiries/sync', '/inquiries/sync'], (req, res) => {
+app.post(['/api/inquiries/sync', '/inquiries/sync'], async (req, res) => {
   const clientInquiries = Array.isArray(req.body) ? req.body : [];
+
+  if (db.isAvailable) {
+    try {
+      for (const inq of clientInquiries) {
+        if (inq && inq.id) await db.createInquiry(inq);
+      }
+      const allInqs = await db.getInquiries();
+      if (allInqs) return res.json(allInqs);
+    } catch (err) {
+      console.warn('MySQL sync notice:', err.message);
+    }
+  }
+
   const serverInquiries = readJSON(INQUIRIES_FILE);
   const map = new Map();
-
-  // Add existing server inquiries
   serverInquiries.forEach(i => { if (i && i.id) map.set(i.id, i); });
-
-  // Merge client inquiries
   clientInquiries.forEach(i => {
     if (i && i.id && !map.has(i.id)) {
       map.set(i.id, i);
@@ -322,34 +398,55 @@ app.post(['/api/inquiries/sync', '/inquiries/sync'], (req, res) => {
 });
 
 // PATCH update inquiry status or notes or opened state (Admin)
-app.patch(['/api/inquiries/:id', '/inquiries/:id'], (req, res) => {
+app.patch(['/api/inquiries/:id', '/inquiries/:id'], async (req, res) => {
+  let updatedInquiry = null;
+
+  if (db.isAvailable) {
+    try {
+      updatedInquiry = await db.updateInquiry(req.params.id, req.body);
+    } catch (err) {
+      console.warn('MySQL updateInquiry notice:', err.message);
+    }
+  }
+
   const inquiries = readJSON(INQUIRIES_FILE);
   const index = inquiries.findIndex(i => i.id === req.params.id);
-  if (index === -1) {
+  if (index > -1) {
+    if (req.body.status) inquiries[index].status = req.body.status;
+    if (req.body.opened !== undefined) inquiries[index].opened = Boolean(req.body.opened);
+    if (req.body.curatorNotes !== undefined) inquiries[index].curatorNotes = req.body.curatorNotes;
+    writeJSON(INQUIRIES_FILE, inquiries);
+    if (!updatedInquiry) updatedInquiry = inquiries[index];
+  }
+
+  if (!updatedInquiry && index === -1) {
     return res.status(404).json({ error: 'Inquiry not found' });
   }
 
-  if (req.body.status) inquiries[index].status = req.body.status;
-  if (req.body.opened !== undefined) inquiries[index].opened = Boolean(req.body.opened);
-  if (req.body.curatorNotes !== undefined) inquiries[index].curatorNotes = req.body.curatorNotes;
-
-  writeJSON(INQUIRIES_FILE, inquiries);
-  res.json(inquiries[index]);
+  res.json(updatedInquiry);
 });
 
 // Auth Routes (Curator Admin & Collector)
-app.post(['/api/auth/login', '/auth/login'], (req, res) => {
+app.post(['/api/auth/login', '/auth/login'], async (req, res) => {
   const { email, password, role } = req.body;
-  
-  // Admin curator verification against data/admin.json
-  const adminData = readJSON(ADMIN_FILE, {
-    name: '55 smartCREATIVES Admin',
-    email: 'admin@eddypro.com',
-    password: 'curator2026',
-    role: 'admin'
-  });
-
   const normalizedEmail = (email || '').trim().toLowerCase();
+
+  // 1. Admin verification
+  let adminData = null;
+  if (db.isAvailable) {
+    try {
+      adminData = await db.getAdmin();
+    } catch (e) {}
+  }
+  if (!adminData) {
+    adminData = readJSON(ADMIN_FILE, {
+      name: '55 smartCREATIVES Admin',
+      email: 'admin@eddypro.com',
+      password: 'curator2026',
+      role: 'admin'
+    });
+  }
+
   if (normalizedEmail === adminData.email.toLowerCase() || normalizedEmail === 'admin@galerielumiere.com') {
     if (password === adminData.password || password === 'curator2026' || password === 'admin') {
       adminData.lastLogin = new Date().toISOString();
@@ -368,19 +465,19 @@ app.post(['/api/auth/login', '/auth/login'], (req, res) => {
     }
   }
 
-  // Collector user verification
-  const users = readJSON(USERS_FILE, [
-    {
-      id: 'usr-1',
-      name: 'Lord Alistair Sterling',
-      email: 'a.sterling@mayfairholdings.co.uk',
-      password: 'password123',
-      tier: 'Patron of the Arts',
-      wishlist: ['art-01', 'art-04']
-    }
-  ]);
+  // 2. Collector verification
+  let user = null;
+  if (db.isAvailable) {
+    try {
+      user = await db.getUserByEmail(normalizedEmail);
+    } catch (e) {}
+  }
 
-  const user = users.find(u => u.email.toLowerCase() === (email || '').toLowerCase());
+  if (!user) {
+    const users = readJSON(USERS_FILE, []);
+    user = users.find(u => u.email.toLowerCase() === normalizedEmail);
+  }
+
   if (user && user.password === password) {
     return res.json({
       token: 'token-collector-' + user.id + '-' + Date.now(),
@@ -413,37 +510,59 @@ app.post(['/api/auth/login', '/auth/login'], (req, res) => {
   return res.status(401).json({ error: 'Invalid email or password' });
 });
 
-app.post(['/api/auth/register', '/auth/register'], (req, res) => {
+app.post(['/api/auth/register', '/auth/register'], async (req, res) => {
   const { name, email, password } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password required' });
   }
 
-  const users = readJSON(USERS_FILE);
-  if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  // Check if exists in MySQL
+  if (db.isAvailable) {
+    try {
+      const existing = await db.getUserByEmail(normalizedEmail);
+      if (existing) {
+        return res.status(400).json({ error: 'An account with this email already exists' });
+      }
+    } catch (e) {}
+  }
+
+  const users = readJSON(USERS_FILE, []);
+  if (users.some(u => u.email.toLowerCase() === normalizedEmail)) {
     return res.status(400).json({ error: 'An account with this email already exists' });
   }
 
   const newUser = {
     id: 'usr-' + Date.now(),
     name: name || 'Private Collector',
-    email,
+    email: normalizedEmail,
     password,
     tier: 'Collector Member',
     wishlist: [],
     role: 'collector'
   };
 
-  users.push(newUser);
+  let savedUser = newUser;
+  if (db.isAvailable) {
+    try {
+      const dbSaved = await db.createUser(newUser);
+      if (dbSaved) savedUser = dbSaved;
+    } catch (e) {
+      console.warn('MySQL createUser error:', e.message);
+    }
+  }
+
+  users.push(savedUser);
   writeJSON(USERS_FILE, users);
 
   res.status(201).json({
-    token: 'token-collector-' + newUser.id,
+    token: 'token-collector-' + savedUser.id,
     user: {
-      id: newUser.id,
-      name: newUser.name,
-      email: newUser.email,
-      tier: newUser.tier,
+      id: savedUser.id,
+      name: savedUser.name,
+      email: savedUser.email,
+      tier: savedUser.tier,
       wishlist: [],
       role: 'collector'
     }
@@ -451,47 +570,65 @@ app.post(['/api/auth/register', '/auth/register'], (req, res) => {
 });
 
 // Update Collector Profile
-app.put(['/api/users/profile', '/users/profile'], (req, res) => {
+app.put(['/api/users/profile', '/users/profile'], async (req, res) => {
   const { email, name, phone, address, password } = req.body;
   if (!email) {
     return res.status(400).json({ error: 'Email is required' });
   }
-  const users = readJSON(USERS_FILE);
+
+  let updatedUser = null;
+  if (db.isAvailable) {
+    try {
+      updatedUser = await db.updateUserProfile(email, { name, phone, address, password });
+    } catch (e) {}
+  }
+
+  const users = readJSON(USERS_FILE, []);
   const index = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
-  if (index === -1) {
+  if (index > -1) {
+    if (name) users[index].name = name;
+    if (phone !== undefined) users[index].phone = phone;
+    if (address !== undefined) users[index].address = address;
+    if (password && password.length >= 4) users[index].password = password;
+    writeJSON(USERS_FILE, users);
+    if (!updatedUser) updatedUser = users[index];
+  }
+
+  if (!updatedUser && index === -1) {
     return res.status(404).json({ error: 'Collector profile not found' });
   }
 
-  if (name) users[index].name = name;
-  if (phone !== undefined) users[index].phone = phone;
-  if (address !== undefined) users[index].address = address;
-  if (password && password.length >= 4) users[index].password = password;
-
-  writeJSON(USERS_FILE, users);
   res.json({
     success: true,
     user: {
-      id: users[index].id,
-      name: users[index].name,
-      email: users[index].email,
-      tier: users[index].tier,
-      phone: users[index].phone || '',
-      address: users[index].address || '',
-      wishlist: users[index].wishlist || [],
+      id: updatedUser.id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      tier: updatedUser.tier,
+      phone: updatedUser.phone || '',
+      address: updatedUser.address || '',
+      wishlist: updatedUser.wishlist || [],
       role: 'collector'
     }
   });
 });
 
 // Admin change password
-app.post(['/api/admin/change-password', '/admin/change-password'], (req, res) => {
+app.post(['/api/admin/change-password', '/admin/change-password'], async (req, res) => {
   const { currentPassword, newPassword } = req.body;
-  const adminData = readJSON(ADMIN_FILE, {
-    name: '55 smartCREATIVES Admin',
-    email: 'admin@eddypro.com',
-    password: 'curator2026',
-    role: 'admin'
-  });
+
+  let adminData = null;
+  if (db.isAvailable) {
+    try { adminData = await db.getAdmin(); } catch (e) {}
+  }
+  if (!adminData) {
+    adminData = readJSON(ADMIN_FILE, {
+      name: '55 smartCREATIVES Admin',
+      email: 'admin@eddypro.com',
+      password: 'curator2026',
+      role: 'admin'
+    });
+  }
 
   if (currentPassword !== adminData.password && currentPassword !== 'curator2026') {
     return res.status(400).json({ error: 'Current password is incorrect' });
@@ -501,22 +638,32 @@ app.post(['/api/admin/change-password', '/admin/change-password'], (req, res) =>
     return res.status(400).json({ error: 'New password must be at least 4 characters long' });
   }
 
+  if (db.isAvailable) {
+    try { await db.updateAdminPassword(newPassword); } catch (e) {}
+  }
+
   adminData.password = newPassword;
   writeJSON(ADMIN_FILE, adminData);
   res.json({ success: true, message: 'Administrator password updated successfully' });
 });
 
 // Admin profile info
-app.get(['/api/admin/profile', '/admin/profile'], (req, res) => {
-  const adminData = readJSON(ADMIN_FILE, {
-    name: '55 smartCREATIVES Admin',
-    email: 'admin@eddypro.com',
-    role: 'admin'
-  });
+app.get(['/api/admin/profile', '/admin/profile'], async (req, res) => {
+  let adminData = null;
+  if (db.isAvailable) {
+    try { adminData = await db.getAdmin(); } catch (e) {}
+  }
+  if (!adminData) {
+    adminData = readJSON(ADMIN_FILE, {
+      name: '55 smartCREATIVES Admin',
+      email: 'admin@eddypro.com',
+      role: 'admin'
+    });
+  }
   res.json({
     name: adminData.name,
     email: adminData.email,
-    role: adminData.role,
+    role: adminData.role || 'admin',
     lastLogin: adminData.lastLogin
   });
 });

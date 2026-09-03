@@ -6,11 +6,13 @@
   "type": "commonjs",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "db:migrate": "node scripts/migrate-to-mysql.js"
   },
   "dependencies": {
     "cors": "^2.8.6",
-    "express": "^4.22.2"
+    "express": "^4.22.2",
+    "mysql2": "^3.24.3"
   },
   "keywords": [
     "art-gallery",

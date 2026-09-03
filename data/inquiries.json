@@ -1,5 +1,23 @@
 [
   {
+    "id": "inq-7786",
+    "artworkId": "art-01",
+    "artworkTitle": "Night Shadows in Warm Earth",
+    "artworkArtist": "",
+    "artworkPrice": 24500,
+    "artworkImage": "",
+    "collectorName": "Grace Kelly",
+    "collectorEmail": "grace.kelly@monaco.mc",
+    "collectorPhone": "+377 98 98 00 00",
+    "framePreference": "Natural Scandinavian Maple",
+    "notes": "Inquiring for the private salon collection. Delivery to Monaco.",
+    "status": "Contacted",
+    "opened": true,
+    "isCustomerSubmission": true,
+    "date": "2026-09-03T09:52:45.000Z",
+    "curatorNotes": "Called Her Serene Highness representative; shipping timeline provided."
+  },
+  {
     "id": "inq-9999",
     "artworkId": "art-01",
     "artworkTitle": "Night Shadows in Warm Earth",
