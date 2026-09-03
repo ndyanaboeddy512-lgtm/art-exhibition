@@ -359,6 +359,8 @@ const EddyStore = {
       id: 'inq-' + Math.floor(1000 + Math.random() * 9000),
       ...inquiryData,
       status: 'Pending',
+      opened: false,
+      isCustomerSubmission: true,
       date: new Date().toISOString(),
       curatorNotes: 'Inquiry received. Awaiting curator review.'
     };

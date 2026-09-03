@@ -208,12 +208,12 @@
 
         <!-- VIEW 2: Acquisition Inquiries Pipeline -->
         <div id="viewInquiriesSection" class="admin-panel-card" style="display: none;">
-          <div class="admin-panel-header">
+          <div class="admin-panel-header" style="flex-wrap: wrap; gap: 1rem; align-items: flex-start;">
             <div>
               <h3>Customer Inquiries & Orders</h3>
-              <p style="color: var(--text-inverse-muted); font-size: 0.85rem;">View inquiries sent by customers, update their status, and add notes.</p>
+              <p style="color: var(--text-inverse-muted); font-size: 0.85rem;">Review client orders, reply via email, update statuses, and log private curator notes.</p>
             </div>
-            <div style="display: flex; gap: 0.85rem; align-items: center; flex-wrap: wrap;">
+            <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
               <input type="text" id="inquiriesSearch" class="form-control" style="width: 200px; padding: 6px 12px; font-size: 0.82rem; background: #121211; color: #fff; border-color: var(--border-dark);" placeholder="Search client, artwork...">
               <select id="inquiriesStatusFilter" class="form-control" style="width: 140px; padding: 6px 10px; font-size: 0.82rem; background: #121211; color: #fff; border-color: var(--border-dark);">
                 <option value="all">All Statuses</option>
@@ -228,16 +228,34 @@
             </div>
           </div>
 
+          <!-- SUB-NAVIGATION: SEPARATE NEW VS OPENED INQUIRIES -->
+          <div style="display: flex; gap: 0.6rem; margin: 1rem 0 1.5rem; border-bottom: 1px solid var(--border-dark); padding-bottom: 0.85rem; flex-wrap: wrap;">
+            <button class="btn-secondary active" id="subtabNewInquiries" onclick="AdminApp.setInquiriesView('new')" style="font-size: 0.85rem; padding: 8px 16px; border-radius: 4px; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; background: rgba(194, 165, 126, 0.15); border-color: var(--accent-gold); color: var(--accent-gold);">
+              ⚡ New Inquiries (<span id="badgeNewInquiriesCount">0</span>)
+            </button>
+            <button class="btn-secondary" id="subtabOpenedInquiries" onclick="AdminApp.setInquiriesView('opened')" style="font-size: 0.85rem; padding: 8px 16px; border-radius: 4px; display: inline-flex; align-items: center; gap: 8px; font-weight: 500; color: #aaa; border-color: var(--border-dark);">
+              ✓ Opened & Processed (<span id="badgeOpenedInquiriesCount">0</span>)
+            </button>
+            <button class="btn-secondary" id="subtabAllInquiries" onclick="AdminApp.setInquiriesView('all')" style="font-size: 0.85rem; padding: 8px 16px; border-radius: 4px; display: inline-flex; align-items: center; gap: 8px; font-weight: 500; color: #aaa; border-color: var(--border-dark);">
+              All Inquiries (<span id="badgeAllInquiriesCount">0</span>)
+            </button>
+          </div>
+
+          <!-- Explanatory note for the current view -->
+          <div id="inquiriesViewNotice" style="margin-bottom: 1rem; font-size: 0.82rem; color: var(--accent-gold); background: rgba(194,165,126,0.08); padding: 8px 14px; border-radius: 2px; border-left: 3px solid var(--accent-gold);">
+            Showing <strong>New Inquiries</strong> waiting for curator review. Click "👁 Open" to inspect client details and reply.
+          </div>
+
           <div style="overflow-x: auto;">
             <table class="admin-table">
               <thead>
                 <tr>
-                  <th>Inquiry Ref / Date</th>
+                  <th>Status / Ref</th>
                   <th>Artwork Inquired</th>
-                  <th>Collector Contact</th>
-                  <th>Inquiry Notes</th>
-                  <th>Pipeline Status</th>
-                  <th>Curator Log</th>
+                  <th>Customer Contact</th>
+                  <th>Customer Message</th>
+                  <th>Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody id="inquiriesTableBody">
@@ -481,6 +499,76 @@
       <div style="display: flex; gap: 1rem; justify-content: center;">
         <button class="btn-secondary" style="color: #fff; border-color: var(--border-dark);" onclick="AdminApp.closeDeleteModal()">Cancel</button>
         <button id="btnConfirmDelete" class="btn-primary" style="background: #d32f2f; border-color: #d32f2f; color: #fff;">Confirm Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Customer Inquiry Review & Response Modal -->
+  <div class="modal-backdrop" id="inquiryDetailModal">
+    <div class="modal-card" style="background: #181716; color: #fff; border-color: var(--border-dark); max-width: 650px; padding: 2rem;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--border-dark); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <div>
+          <span id="detailInquiryBadge" style="display: inline-block; padding: 3px 8px; font-size: 0.72rem; font-weight: 700; border-radius: 2px; text-transform: uppercase; letter-spacing: 0.1em; background: var(--accent-gold); color: #000; margin-bottom: 6px;">NEW INQUIRY</span>
+          <h3 id="detailInquiryTitle" style="color: #fff; font-size: 1.5rem; margin-bottom: 2px;">Inquiry Reference</h3>
+          <p id="detailInquiryDate" style="color: var(--text-inverse-muted); font-size: 0.8rem;">Received Date</p>
+        </div>
+        <button class="modal-close-btn" style="color: #ccc;" onclick="AdminApp.closeInquiryDetailModal()">&times;</button>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+        <div style="background: #121211; padding: 1rem; border: 1px solid var(--border-dark); border-radius: 4px;">
+          <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--accent-gold); letter-spacing: 0.1em; margin-bottom: 8px;">Customer Information</h4>
+          <div id="detailCollectorName" style="font-size: 1.05rem; font-weight: 600; color: #fff; margin-bottom: 4px;">Customer Name</div>
+          <div style="font-size: 0.82rem; color: #ccc; margin-bottom: 4px;">
+            ✉ <a id="detailCollectorEmail" href="#" style="color: var(--accent-gold); text-decoration: underline;">customer@email.com</a>
+          </div>
+          <div id="detailCollectorPhone" style="font-size: 0.82rem; color: #aaa;">📞 +1 555-0199</div>
+        </div>
+
+        <div style="background: #121211; padding: 1rem; border: 1px solid var(--border-dark); border-radius: 4px;">
+          <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--accent-gold); letter-spacing: 0.1em; margin-bottom: 8px;">Artwork Inquired</h4>
+          <div id="detailArtworkTitle" style="font-size: 1.05rem; font-weight: 600; color: #fff; margin-bottom: 4px;">Artwork Title</div>
+          <div id="detailArtworkPrice" style="font-size: 0.9rem; color: var(--accent-gold); font-weight: 600; margin-bottom: 4px;">$0</div>
+          <div id="detailFraming" style="font-size: 0.8rem; color: #aaa;">Framing Choice</div>
+        </div>
+      </div>
+
+      <div style="background: #121211; padding: 1.25rem; border: 1px solid var(--border-dark); border-radius: 4px; margin-bottom: 1.25rem;">
+        <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--accent-gold); letter-spacing: 0.1em; margin-bottom: 6px;">Customer Message & Delivery Request</h4>
+        <div id="detailInquiryNotes" style="font-size: 0.92rem; color: #eee; line-height: 1.5; font-style: italic;">"Message"</div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+        <div>
+          <label style="color: #ccc; font-size: 0.82rem; font-weight: 600; margin-bottom: 6px; display: block;">Pipeline Status</label>
+          <select id="detailStatusSelect" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark);">
+            <option value="Pending">Pending (Awaiting Contact)</option>
+            <option value="Contacted">Contacted / In Discussion</option>
+            <option value="Invoice Sent">Invoice Sent</option>
+            <option value="Closed/Sold">Closed / Order Completed</option>
+          </select>
+        </div>
+        <div>
+          <label style="color: #ccc; font-size: 0.82rem; font-weight: 600; margin-bottom: 6px; display: block;">Opened / Read State</label>
+          <button id="btnToggleOpenedState" class="btn-secondary" style="color: #fff; border-color: var(--border-dark); width: 100%; font-size: 0.82rem; padding: 8px 12px;" onclick="AdminApp.toggleCurrentInquiryOpened()">
+            Mark as Opened
+          </button>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 1.5rem;">
+        <label style="color: #ccc; font-size: 0.82rem; font-weight: 600; margin-bottom: 6px; display: block;">Private Curator Note (Internal)</label>
+        <textarea id="detailCuratorNoteInput" class="form-control" style="background: #121211; color: #fff; border-color: var(--border-dark); height: 65px;" placeholder="Add private note (e.g. called collector, offered 5% discount, waiting on shipping quote...)"></textarea>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-dark); padding-top: 1.25rem;">
+        <a id="detailEmailClientBtn" href="#" class="btn-primary" style="background: var(--accent-gold); border-color: var(--accent-gold); display: inline-flex; align-items: center; gap: 8px;">
+          ✉ Email Client
+        </a>
+        <div style="display: flex; gap: 0.75rem;">
+          <button type="button" class="btn-secondary" style="color: #fff; border-color: var(--border-dark);" onclick="AdminApp.closeInquiryDetailModal()">Cancel</button>
+          <button type="button" class="btn-primary" style="background: #252422; border-color: var(--border-dark); color: #fff;" onclick="AdminApp.saveDetailInquiryChanges()">Save Status & Note</button>
+        </div>
       </div>
     </div>
   </div>

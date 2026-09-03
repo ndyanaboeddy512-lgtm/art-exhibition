@@ -13,7 +13,8 @@
     "notes": "I would like to order this piece with delivery to Kigali.",
     "status": "Pending",
     "date": "2026-09-03T09:11:42.196Z",
-    "curatorNotes": "Inquiry received. Awaiting curator assignment."
+    "curatorNotes": "Inquiry received. Awaiting curator assignment.",
+    "opened": true
   },
   {
     "id": "inq-1899",

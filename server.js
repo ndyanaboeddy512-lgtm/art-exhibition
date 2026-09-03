@@ -167,7 +167,7 @@ app.get(['/api/artworks/:id', '/artworks/:id'], (req, res) => {
 });
 
 // Upload image from device endpoint
-app.post('/api/upload', (req, res) => {
+app.post(['/api/upload', '/upload'], (req, res) => {
   const { image } = req.body;
   if (!image) {
     return res.status(400).json({ error: 'No image data provided' });
@@ -177,7 +177,7 @@ app.post('/api/upload', (req, res) => {
 });
 
 // POST new artwork (Admin)
-app.post('/api/artworks', (req, res) => {
+app.post(['/api/artworks', '/artworks'], (req, res) => {
   const artworks = readJSON(ARTWORKS_FILE);
   let imagePath = req.body.image || 'images/art-01.jpg';
   if (imagePath.startsWith('data:image/')) {
@@ -212,7 +212,7 @@ app.post('/api/artworks', (req, res) => {
 });
 
 // PUT update artwork (Admin)
-app.put('/api/artworks/:id', (req, res) => {
+app.put(['/api/artworks/:id', '/artworks/:id'], (req, res) => {
   const artworks = readJSON(ARTWORKS_FILE);
   const index = artworks.findIndex(a => a.id === req.params.id);
   if (index === -1) {
@@ -244,7 +244,7 @@ app.put('/api/artworks/:id', (req, res) => {
 });
 
 // DELETE artwork (Admin)
-app.delete('/api/artworks/:id', (req, res) => {
+app.delete(['/api/artworks/:id', '/artworks/:id'], (req, res) => {
   let artworks = readJSON(ARTWORKS_FILE);
   const initialLength = artworks.length;
   artworks = artworks.filter(a => a.id !== req.params.id);
@@ -258,13 +258,13 @@ app.delete('/api/artworks/:id', (req, res) => {
 });
 
 // GET inquiries
-app.get('/api/inquiries', (req, res) => {
+app.get(['/api/inquiries', '/inquiries'], (req, res) => {
   const inquiries = readJSON(INQUIRIES_FILE);
   res.json(inquiries);
 });
 
 // POST new inquiry (Collector or Guest)
-app.post('/api/inquiries', (req, res) => {
+app.post(['/api/inquiries', '/inquiries'], (req, res) => {
   const inquiries = readJSON(INQUIRIES_FILE);
   const newId = req.body.id || ('inq-' + Math.floor(1000 + Math.random() * 9000));
   
@@ -282,6 +282,8 @@ app.post('/api/inquiries', (req, res) => {
     framePreference: req.body.framePreference || 'Included Framing',
     notes: req.body.notes || '',
     status: req.body.status || 'Pending',
+    opened: req.body.opened !== undefined ? Boolean(req.body.opened) : false,
+    isCustomerSubmission: true,
     date: req.body.date || new Date().toISOString(),
     curatorNotes: req.body.curatorNotes || 'Inquiry received. Awaiting curator assignment.'
   };
@@ -293,12 +295,12 @@ app.post('/api/inquiries', (req, res) => {
   }
 
   writeJSON(INQUIRIES_FILE, inquiries);
-  console.log(`✓ Inquiry logged: ${newInquiry.id} from ${newInquiry.collectorName}`);
+  console.log(`✓ Inquiry logged: ${newInquiry.id} from ${newInquiry.collectorName} (opened: ${newInquiry.opened})`);
   res.status(201).json(newInquiry);
 });
 
 // POST sync multiple inquiries from client
-app.post('/api/inquiries/sync', (req, res) => {
+app.post(['/api/inquiries/sync', '/inquiries/sync'], (req, res) => {
   const clientInquiries = Array.isArray(req.body) ? req.body : [];
   const serverInquiries = readJSON(INQUIRIES_FILE);
   const map = new Map();
@@ -319,8 +321,8 @@ app.post('/api/inquiries/sync', (req, res) => {
   res.json(merged);
 });
 
-// PATCH update inquiry status or notes (Admin)
-app.patch('/api/inquiries/:id', (req, res) => {
+// PATCH update inquiry status or notes or opened state (Admin)
+app.patch(['/api/inquiries/:id', '/inquiries/:id'], (req, res) => {
   const inquiries = readJSON(INQUIRIES_FILE);
   const index = inquiries.findIndex(i => i.id === req.params.id);
   if (index === -1) {
@@ -328,6 +330,7 @@ app.patch('/api/inquiries/:id', (req, res) => {
   }
 
   if (req.body.status) inquiries[index].status = req.body.status;
+  if (req.body.opened !== undefined) inquiries[index].opened = Boolean(req.body.opened);
   if (req.body.curatorNotes !== undefined) inquiries[index].curatorNotes = req.body.curatorNotes;
 
   writeJSON(INQUIRIES_FILE, inquiries);
@@ -335,7 +338,7 @@ app.patch('/api/inquiries/:id', (req, res) => {
 });
 
 // Auth Routes (Curator Admin & Collector)
-app.post('/api/auth/login', (req, res) => {
+app.post(['/api/auth/login', '/auth/login'], (req, res) => {
   const { email, password, role } = req.body;
   
   // Admin curator verification against data/admin.json
@@ -410,7 +413,7 @@ app.post('/api/auth/login', (req, res) => {
   return res.status(401).json({ error: 'Invalid email or password' });
 });
 
-app.post('/api/auth/register', (req, res) => {
+app.post(['/api/auth/register', '/auth/register'], (req, res) => {
   const { name, email, password } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password required' });
@@ -448,7 +451,7 @@ app.post('/api/auth/register', (req, res) => {
 });
 
 // Update Collector Profile
-app.put('/api/users/profile', (req, res) => {
+app.put(['/api/users/profile', '/users/profile'], (req, res) => {
   const { email, name, phone, address, password } = req.body;
   if (!email) {
     return res.status(400).json({ error: 'Email is required' });
@@ -481,7 +484,7 @@ app.put('/api/users/profile', (req, res) => {
 });
 
 // Admin change password
-app.post('/api/admin/change-password', (req, res) => {
+app.post(['/api/admin/change-password', '/admin/change-password'], (req, res) => {
   const { currentPassword, newPassword } = req.body;
   const adminData = readJSON(ADMIN_FILE, {
     name: '55 smartCREATIVES Admin',
@@ -504,7 +507,7 @@ app.post('/api/admin/change-password', (req, res) => {
 });
 
 // Admin profile info
-app.get('/api/admin/profile', (req, res) => {
+app.get(['/api/admin/profile', '/admin/profile'], (req, res) => {
   const adminData = readJSON(ADMIN_FILE, {
     name: '55 smartCREATIVES Admin',
     email: 'admin@eddypro.com',

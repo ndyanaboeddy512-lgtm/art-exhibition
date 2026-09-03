@@ -8,6 +8,8 @@ const AdminApp = {
   editingArtworkId: null,
   deletingArtworkId: null,
   activeTab: 'inventory',
+  inquiriesView: 'new', // 'new' | 'opened' | 'all'
+  currentInquiryId: null,
 
   async init() {
     // Check curator session
@@ -25,6 +27,13 @@ const AdminApp = {
     }
 
     this.bindEvents();
+
+    // Auto-poll inquiries every 12 seconds so customer submissions appear in real time
+    setInterval(() => {
+      if (this.isLoggedIn) {
+        this.refreshInquiries();
+      }
+    }, 12000);
   },
 
   showLogin() {
@@ -52,6 +61,7 @@ const AdminApp = {
     }
 
     this.renderStats();
+    this.updateInquiryCounts();
     this.renderInventoryTable();
     this.renderInquiriesTable();
   },
@@ -440,6 +450,7 @@ const AdminApp = {
     try {
       await EddyStore.fetchInquiries();
       this.renderStats();
+      this.updateInquiryCounts();
       const inqSearch = document.getElementById('inquiriesSearch');
       const inqStatus = document.getElementById('inquiriesStatusFilter');
       this.renderInquiriesTable(inqSearch ? inqSearch.value.toLowerCase() : '', inqStatus ? inqStatus.value : 'all');
@@ -448,11 +459,72 @@ const AdminApp = {
     }
   },
 
+  setInquiriesView(view) {
+    this.inquiriesView = view;
+    const btnNew = document.getElementById('subtabNewInquiries');
+    const btnOpened = document.getElementById('subtabOpenedInquiries');
+    const btnAll = document.getElementById('subtabAllInquiries');
+    const notice = document.getElementById('inquiriesViewNotice');
+
+    const activeStyle = 'font-size: 0.85rem; padding: 8px 16px; border-radius: 4px; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; background: rgba(194, 165, 126, 0.15); border-color: var(--accent-gold); color: var(--accent-gold);';
+    const inactiveStyle = 'font-size: 0.85rem; padding: 8px 16px; border-radius: 4px; display: inline-flex; align-items: center; gap: 8px; font-weight: 500; color: #aaa; border-color: var(--border-dark); background: transparent;';
+
+    if (btnNew) btnNew.style.cssText = view === 'new' ? activeStyle : inactiveStyle;
+    if (btnOpened) btnOpened.style.cssText = view === 'opened' ? activeStyle : inactiveStyle;
+    if (btnAll) btnAll.style.cssText = view === 'all' ? activeStyle : inactiveStyle;
+
+    if (notice) {
+      if (view === 'new') {
+        notice.innerHTML = 'Showing <strong>New Inquiries</strong> waiting for curator review. Click <strong>"👁 Open"</strong> to inspect customer message and reply.';
+        notice.style.borderLeftColor = 'var(--accent-gold)';
+        notice.style.color = 'var(--accent-gold)';
+      } else if (view === 'opened') {
+        notice.innerHTML = 'Showing <strong>Opened & Processed Inquiries</strong>. These have been inspected, contacted, or fulfilled.';
+        notice.style.borderLeftColor = '#4caf50';
+        notice.style.color = '#81c784';
+      } else {
+        notice.innerHTML = 'Showing <strong>All Inquiries</strong> recorded across the entire gallery pipeline.';
+        notice.style.borderLeftColor = 'var(--border-dark)';
+        notice.style.color = '#ccc';
+      }
+    }
+
+    const inqSearch = document.getElementById('inquiriesSearch');
+    const inqStatus = document.getElementById('inquiriesStatusFilter');
+    this.renderInquiriesTable(inqSearch ? inqSearch.value.toLowerCase() : '', inqStatus ? inqStatus.value : 'all');
+  },
+
+  updateInquiryCounts() {
+    const all = EddyStore.inquiries || [];
+    const newInquiries = all.filter(i => (i.status === 'Pending' || !i.opened) && i.opened !== true);
+    const openedInquiries = all.filter(i => i.opened === true || (i.status && i.status !== 'Pending'));
+
+    const elNew = document.getElementById('badgeNewInquiriesCount');
+    const elOpened = document.getElementById('badgeOpenedInquiriesCount');
+    const elAll = document.getElementById('badgeAllInquiriesCount');
+
+    if (elNew) elNew.textContent = newInquiries.length;
+    if (elOpened) elOpened.textContent = openedInquiries.length;
+    if (elAll) elAll.textContent = all.length;
+
+    const statPending = document.getElementById('statPendingInquiries');
+    if (statPending) statPending.textContent = newInquiries.length;
+  },
+
   renderInquiriesTable(filterTerm = '', statusFilter = 'all') {
     const tbody = document.getElementById('inquiriesTableBody');
     if (!tbody) return;
 
-    let items = [...EddyStore.inquiries];
+    this.updateInquiryCounts();
+
+    let items = [...(EddyStore.inquiries || [])];
+
+    // Separate View Filter: New vs Opened vs All
+    if (this.inquiriesView === 'new') {
+      items = items.filter(i => (i.status === 'Pending' || !i.opened) && i.opened !== true);
+    } else if (this.inquiriesView === 'opened') {
+      items = items.filter(i => i.opened === true || (i.status && i.status !== 'Pending'));
+    }
 
     if (statusFilter && statusFilter !== 'all') {
       items = items.filter(i => (i.status || 'Pending').toLowerCase() === statusFilter.toLowerCase());
@@ -470,31 +542,43 @@ const AdminApp = {
     }
 
     if (items.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 2.5rem; color: var(--text-inverse-muted);">No customer inquiries found${filterTerm || statusFilter !== 'all' ? ' matching your filters' : ''}.</td></tr>`;
+      const emptyMsg = this.inquiriesView === 'new'
+        ? '✦ No new unopened inquiries. All customer inquiries have been opened and processed.'
+        : this.inquiriesView === 'opened'
+        ? 'No opened inquiries found in this view.'
+        : 'No customer inquiries found matching your filters.';
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 2.5rem; color: var(--text-inverse-muted); font-size: 0.9rem;">${emptyMsg}</td></tr>`;
       return;
     }
 
     tbody.innerHTML = items.map(inq => {
+      const isNew = (inq.status === 'Pending' || !inq.opened) && inq.opened !== true;
       const artworkPriceFormatted = inq.artworkPrice ? EddyStore.formatPrice(inq.artworkPrice) : '';
       const dateStr = inq.date ? new Date(inq.date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'Recent';
+
+      const badgeHtml = isNew
+        ? `<span style="background: var(--accent-gold); color: #000; font-weight: 700; font-size: 0.68rem; padding: 2px 7px; border-radius: 2px; letter-spacing: 0.05em; display: inline-block; margin-bottom: 3px;">✦ NEW</span>`
+        : `<span style="background: rgba(255,255,255,0.08); color: #81c784; font-weight: 600; font-size: 0.68rem; padding: 2px 6px; border-radius: 2px; display: inline-block; margin-bottom: 3px;">✓ OPENED</span>`;
+
       return `
-      <tr>
+      <tr style="${isNew ? 'background: rgba(194, 165, 126, 0.05);' : ''}">
         <td>
-          <div style="font-weight: 600; color: var(--accent-gold);">${inq.id}</div>
+          <div>${badgeHtml}</div>
+          <div style="font-weight: 600; color: ${isNew ? 'var(--accent-gold)' : '#fff'}; font-size: 0.85rem;">${inq.id}</div>
           <div style="font-size: 0.72rem; color: var(--text-inverse-muted); margin-top: 2px;">${dateStr}</div>
         </td>
         <td>
-          <strong>${inq.artworkTitle}</strong>
+          <strong style="color: #fff;">${inq.artworkTitle}</strong>
           ${artworkPriceFormatted ? `<div style="font-size: 0.75rem; color: var(--accent-gold); font-weight: 500;">${artworkPriceFormatted}</div>` : ''}
           <div style="font-size: 0.72rem; color: var(--text-inverse-muted);">${inq.framePreference || 'Studio Stand/Frame'}</div>
         </td>
         <td>
-          <div style="font-weight: 500; color: #fff;">${inq.collectorName}</div>
-          <div style="font-size: 0.75rem; color: var(--accent-gold);"><a href="mailto:${inq.collectorEmail}" style="color: var(--accent-gold); text-decoration: underline;">${inq.collectorEmail}</a></div>
+          <div style="font-weight: 600; color: #fff;">${inq.collectorName}</div>
+          <div style="font-size: 0.75rem;"><a href="mailto:${inq.collectorEmail}" style="color: var(--accent-gold); text-decoration: underline;">${inq.collectorEmail}</a></div>
           ${inq.collectorPhone ? `<div style="font-size: 0.72rem; color: var(--text-inverse-muted);">${inq.collectorPhone}</div>` : ''}
         </td>
-        <td style="max-width: 240px;">
-          <div style="font-size: 0.82rem; color: #ddd; font-style: italic;">"${inq.notes || 'Inquired about purchasing this artwork.'}"</div>
+        <td style="max-width: 220px;">
+          <div style="font-size: 0.82rem; color: #ddd; font-style: italic; line-height: 1.4;">"${inq.notes || 'Inquired about purchasing this artwork.'}"</div>
           ${inq.curatorNotes ? `<div style="font-size: 0.72rem; color: var(--accent-gold); margin-top: 6px; padding: 2px 6px; background: rgba(194, 165, 126, 0.1); border-radius: 2px;">Note: ${inq.curatorNotes}</div>` : ''}
         </td>
         <td>
@@ -506,14 +590,150 @@ const AdminApp = {
           </select>
         </td>
         <td>
-          <div style="display: flex; gap: 4px;">
-            <button class="btn-admin-action edit" onclick="AdminApp.addCuratorNote('${inq.id}')" title="Add Private Follow-up Note">+ Note</button>
-            <a href="mailto:${inq.collectorEmail}?subject=Regarding your inquiry for ${encodeURIComponent(inq.artworkTitle)}" class="btn-admin-action" style="background:#252422; color:#fff; border: 1px solid var(--border-dark);" title="Send Email to Client">Email ↗</a>
+          <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+            <button class="btn-admin-action" style="background: ${isNew ? 'var(--accent-gold)' : '#2a2826'}; color: ${isNew ? '#000' : '#fff'}; font-weight: 600; border: 1px solid var(--border-dark);" onclick="AdminApp.openInquiryDetailModal('${inq.id}')" title="Inspect Customer Message and Order Details">
+              ${isNew ? '👁 Open' : '👁 View'}
+            </button>
+            <a href="mailto:${inq.collectorEmail}?subject=Regarding your inquiry for ${encodeURIComponent(inq.artworkTitle)} - 55 smartCREATIVES" class="btn-admin-action" style="background:#1e1d1b; color:#ccc; border: 1px solid var(--border-dark);" title="Reply via Email">
+              ✉ Email
+            </a>
           </div>
         </td>
       </tr>
       `;
     }).join('');
+  },
+
+  openInquiryDetailModal(id) {
+    const inq = (EddyStore.inquiries || []).find(i => i.id === id);
+    if (!inq) return;
+
+    this.currentInquiryId = id;
+    
+    // Auto-mark as opened when opened by curator
+    inq.opened = true;
+    EddyStore.saveInquiriesLocally();
+    if (EddyStore.isBackendConnected) {
+      try {
+        fetch(`/api/inquiries/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ opened: true })
+        });
+      } catch (e) {}
+    }
+
+    const modal = document.getElementById('inquiryDetailModal');
+    if (!modal) return;
+
+    const badgeEl = document.getElementById('detailInquiryBadge');
+    if (badgeEl) {
+      badgeEl.textContent = inq.status === 'Pending' ? 'NEW INQUIRY' : inq.status.toUpperCase();
+      badgeEl.style.background = inq.status === 'Pending' ? 'var(--accent-gold)' : '#4caf50';
+    }
+
+    document.getElementById('detailInquiryTitle').textContent = `Inquiry Ref: ${inq.id}`;
+    document.getElementById('detailInquiryDate').textContent = inq.date ? new Date(inq.date).toLocaleString([], { dateStyle: 'full', timeStyle: 'short' }) : 'Recently received';
+    document.getElementById('detailCollectorName').textContent = inq.collectorName || 'Anonymous Collector';
+    
+    const emailEl = document.getElementById('detailCollectorEmail');
+    if (emailEl) {
+      emailEl.textContent = inq.collectorEmail || 'No email provided';
+      emailEl.href = `mailto:${inq.collectorEmail}`;
+    }
+
+    const phoneEl = document.getElementById('detailCollectorPhone');
+    if (phoneEl) {
+      phoneEl.textContent = inq.collectorPhone ? `📞 ${inq.collectorPhone}` : '📞 No phone provided';
+    }
+
+    document.getElementById('detailArtworkTitle').textContent = inq.artworkTitle || 'General Acquisition Inquiry';
+    document.getElementById('detailArtworkPrice').textContent = inq.artworkPrice ? EddyStore.formatPrice(inq.artworkPrice) : '';
+    document.getElementById('detailFraming').textContent = inq.framePreference ? `Framing: ${inq.framePreference}` : 'Framing: Standard Presentation';
+    document.getElementById('detailInquiryNotes').textContent = inq.notes ? `"${inq.notes}"` : '"Client inquired about purchasing this artwork."';
+
+    const statusSel = document.getElementById('detailStatusSelect');
+    if (statusSel) statusSel.value = inq.status || 'Pending';
+
+    const noteInput = document.getElementById('detailCuratorNoteInput');
+    if (noteInput) noteInput.value = inq.curatorNotes || '';
+
+    const emailBtn = document.getElementById('detailEmailClientBtn');
+    if (emailBtn) {
+      emailBtn.href = `mailto:${inq.collectorEmail}?subject=Regarding your inquiry for "${encodeURIComponent(inq.artworkTitle || 'Fine Art')}" - 55 smartCREATIVES&body=Dear ${encodeURIComponent(inq.collectorName)},%0D%0A%0D%0AThank you for contacting 55 smartCREATIVES regarding "${encodeURIComponent(inq.artworkTitle || '')}".%0D%0A%0D%0A`;
+    }
+
+    const toggleBtn = document.getElementById('btnToggleOpenedState');
+    if (toggleBtn) {
+      toggleBtn.textContent = inq.opened ? '✓ Mark as Unopened (New)' : 'Mark as Opened';
+    }
+
+    modal.style.display = 'flex';
+    this.updateInquiryCounts();
+    this.renderInquiriesTable();
+  },
+
+  closeInquiryDetailModal() {
+    const modal = document.getElementById('inquiryDetailModal');
+    if (modal) modal.style.display = 'none';
+    this.currentInquiryId = null;
+  },
+
+  async toggleCurrentInquiryOpened() {
+    if (!this.currentInquiryId) return;
+    const inq = (EddyStore.inquiries || []).find(i => i.id === this.currentInquiryId);
+    if (!inq) return;
+
+    inq.opened = !inq.opened;
+    EddyStore.saveInquiriesLocally();
+
+    if (EddyStore.isBackendConnected) {
+      try {
+        await fetch(`/api/inquiries/${inq.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ opened: inq.opened })
+        });
+      } catch (e) {}
+    }
+
+    const toggleBtn = document.getElementById('btnToggleOpenedState');
+    if (toggleBtn) {
+      toggleBtn.textContent = inq.opened ? '✓ Mark as Unopened (New)' : 'Mark as Opened';
+    }
+
+    this.showToast(inq.opened ? 'Inquiry marked as Opened' : 'Inquiry marked as New');
+    this.updateInquiryCounts();
+    this.renderInquiriesTable();
+  },
+
+  async saveDetailInquiryChanges() {
+    if (!this.currentInquiryId) return;
+    const inq = (EddyStore.inquiries || []).find(i => i.id === this.currentInquiryId);
+    if (!inq) return;
+
+    const statusSel = document.getElementById('detailStatusSelect');
+    const noteInput = document.getElementById('detailCuratorNoteInput');
+
+    if (statusSel) inq.status = statusSel.value;
+    if (noteInput) inq.curatorNotes = noteInput.value.trim();
+
+    EddyStore.saveInquiriesLocally();
+
+    if (EddyStore.isBackendConnected) {
+      try {
+        await fetch(`/api/inquiries/${inq.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: inq.status, curatorNotes: inq.curatorNotes })
+        });
+      } catch (e) {}
+    }
+
+    this.showToast('Inquiry status and note updated');
+    this.closeInquiryDetailModal();
+    this.updateInquiryCounts();
+    this.renderInquiriesTable();
   },
 
   async updateArtworkStatus(id, newStatus) {
