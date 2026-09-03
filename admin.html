@@ -140,11 +140,11 @@
         
         <!-- Tab Navigation -->
         <div class="admin-nav-tabs">
-          <button class="admin-tab-btn active" id="tabInventoryBtn" onclick="AdminApp.switchTab('inventory')">
-            Artworks & Inventory
+          <button class="admin-tab-btn active" id="tabInquiriesBtn" onclick="AdminApp.switchTab('inquiries')">
+            📬 Customer Inquiries (<span id="tabInquiriesCount">0</span>)
           </button>
-          <button class="admin-tab-btn" id="tabInquiriesBtn" onclick="AdminApp.switchTab('inquiries')">
-            Customer Inquiries
+          <button class="admin-tab-btn" id="tabInventoryBtn" onclick="AdminApp.switchTab('inventory')">
+            🎨 Artworks & Inventory
           </button>
           <button class="admin-tab-btn" id="tabSecurityBtn" onclick="AdminApp.switchTab('security')">
             🔑 Change Password & Settings
@@ -153,6 +153,10 @@
 
         <!-- KPI Metrics Grid -->
         <div class="admin-stats-grid">
+          <div class="admin-stat-card" style="cursor: pointer;" onclick="AdminApp.switchTab('inquiries')" title="Click to view inquiries">
+            <span class="stat-label">Pending Inquiries ↗</span>
+            <span class="stat-number" id="statPendingInquiries" style="color: #ffb74d;">0</span>
+          </div>
           <div class="admin-stat-card">
             <span class="stat-label">Available Art Total Value</span>
             <span class="stat-number" id="statCatalogValue" style="color: var(--accent-gold);">$0</span>
@@ -162,17 +166,13 @@
             <span class="stat-number" id="statTotalArtworks">0</span>
           </div>
           <div class="admin-stat-card">
-            <span class="stat-label">Pending Inquiries</span>
-            <span class="stat-number" id="statPendingInquiries" style="color: #ffb74d;">0</span>
-          </div>
-          <div class="admin-stat-card">
             <span class="stat-label">Sold Artworks</span>
             <span class="stat-number" id="statSoldCount">0</span>
           </div>
         </div>
 
         <!-- VIEW 1: Inventory Catalog Management -->
-        <div id="viewInventorySection" class="admin-panel-card">
+        <div id="viewInventorySection" class="admin-panel-card" style="display: none;">
           <div class="admin-panel-header">
             <div>
               <h3>Artworks & Products</h3>
@@ -215,11 +215,11 @@
         </div>
 
         <!-- VIEW 2: Acquisition Inquiries Pipeline -->
-        <div id="viewInquiriesSection" class="admin-panel-card" style="display: none;">
+        <div id="viewInquiriesSection" class="admin-panel-card" style="display: block;">
           <div class="admin-panel-header" style="flex-wrap: wrap; gap: 1rem; align-items: flex-start;">
             <div>
               <h3>Customer Inquiries & Orders</h3>
-              <p style="color: var(--text-inverse-muted); font-size: 0.85rem;">Review client orders, reply via email, update statuses, and log private curator notes.</p>
+              <p style="color: var(--text-inverse-muted); font-size: 0.85rem;">Review client inquiries, reply via email, update statuses, and log private curator notes.</p>
             </div>
             <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
               <input type="text" id="inquiriesSearch" class="form-control" style="width: 200px; padding: 6px 12px; font-size: 0.82rem; background: #121211; color: #fff; border-color: var(--border-dark);" placeholder="Search client, artwork...">
@@ -238,20 +238,20 @@
 
           <!-- SUB-NAVIGATION: SEPARATE NEW VS OPENED INQUIRIES -->
           <div style="display: flex; gap: 0.6rem; margin: 1rem 0 1.5rem; border-bottom: 1px solid var(--border-dark); padding-bottom: 0.85rem; flex-wrap: wrap;">
-            <button class="btn-secondary active" id="subtabNewInquiries" onclick="AdminApp.setInquiriesView('new')" style="font-size: 0.85rem; padding: 8px 16px; border-radius: 4px; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; background: rgba(194, 165, 126, 0.15); border-color: var(--accent-gold); color: var(--accent-gold);">
-              ⚡ New Inquiries (<span id="badgeNewInquiriesCount">0</span>)
+            <button class="btn-secondary active" id="subtabAllInquiries" onclick="AdminApp.setInquiriesView('all')" style="font-size: 0.85rem; padding: 8px 16px; border-radius: 4px; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; background: rgba(194, 165, 126, 0.15); border-color: var(--accent-gold); color: var(--accent-gold);">
+              All Inquiries (<span id="badgeAllInquiriesCount">0</span>)
+            </button>
+            <button class="btn-secondary" id="subtabNewInquiries" onclick="AdminApp.setInquiriesView('new')" style="font-size: 0.85rem; padding: 8px 16px; border-radius: 4px; display: inline-flex; align-items: center; gap: 8px; font-weight: 500; color: #aaa; border-color: var(--border-dark);">
+              ⚡ New (<span id="badgeNewInquiriesCount">0</span>)
             </button>
             <button class="btn-secondary" id="subtabOpenedInquiries" onclick="AdminApp.setInquiriesView('opened')" style="font-size: 0.85rem; padding: 8px 16px; border-radius: 4px; display: inline-flex; align-items: center; gap: 8px; font-weight: 500; color: #aaa; border-color: var(--border-dark);">
               ✓ Opened & Processed (<span id="badgeOpenedInquiriesCount">0</span>)
             </button>
-            <button class="btn-secondary" id="subtabAllInquiries" onclick="AdminApp.setInquiriesView('all')" style="font-size: 0.85rem; padding: 8px 16px; border-radius: 4px; display: inline-flex; align-items: center; gap: 8px; font-weight: 500; color: #aaa; border-color: var(--border-dark);">
-              All Inquiries (<span id="badgeAllInquiriesCount">0</span>)
-            </button>
           </div>
 
           <!-- Explanatory note for the current view -->
-          <div id="inquiriesViewNotice" style="margin-bottom: 1rem; font-size: 0.82rem; color: var(--accent-gold); background: rgba(194,165,126,0.08); padding: 8px 14px; border-radius: 2px; border-left: 3px solid var(--accent-gold);">
-            Showing <strong>New Inquiries</strong> waiting for curator review. Click "👁 Open" to inspect client details and reply.
+          <div id="inquiriesViewNotice" style="margin-bottom: 1rem; font-size: 0.82rem; color: #ccc; background: rgba(194,165,126,0.08); padding: 8px 14px; border-radius: 2px; border-left: 3px solid var(--border-dark);">
+            Showing <strong>All Inquiries</strong> recorded across the gallery. Click "👁 Open" on any inquiry to inspect details.
           </div>
 
           <div style="overflow-x: auto;">

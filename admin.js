@@ -7,8 +7,8 @@ const AdminApp = {
   isLoggedIn: false,
   editingArtworkId: null,
   deletingArtworkId: null,
-  activeTab: 'inventory',
-  inquiriesView: 'new', // 'new' | 'opened' | 'all'
+  activeTab: 'inquiries',
+  inquiriesView: 'all', // 'all' | 'new' | 'opened'
   currentInquiryId: null,
 
   async init() {
@@ -27,13 +27,14 @@ const AdminApp = {
     }
 
     this.bindEvents();
+    this.refreshInquiries();
 
-    // Auto-poll inquiries every 12 seconds so customer submissions appear in real time
+    // Auto-poll inquiries every 8 seconds so customer submissions appear in real time
     setInterval(() => {
       if (this.isLoggedIn) {
         this.refreshInquiries();
       }
-    }, 12000);
+    }, 8000);
   },
 
   showLogin() {
@@ -64,10 +65,11 @@ const AdminApp = {
         if (emailEl && sessionData.email) emailEl.textContent = sessionData.email;
       }
 
+      this.switchTab(this.activeTab);
       if (typeof this.renderStats === 'function') this.renderStats();
       if (typeof this.updateInquiryCounts === 'function') this.updateInquiryCounts();
-      if (typeof this.renderInventoryTable === 'function') this.renderInventoryTable();
       if (typeof this.renderInquiriesTable === 'function') this.renderInquiriesTable();
+      if (typeof this.renderInventoryTable === 'function') this.renderInventoryTable();
     } catch (err) {
       console.warn('Dashboard rendering notice:', err);
     }
@@ -555,10 +557,12 @@ const AdminApp = {
     const elNew = document.getElementById('badgeNewInquiriesCount');
     const elOpened = document.getElementById('badgeOpenedInquiriesCount');
     const elAll = document.getElementById('badgeAllInquiriesCount');
+    const tabCount = document.getElementById('tabInquiriesCount');
 
     if (elNew) elNew.textContent = newInquiries.length;
     if (elOpened) elOpened.textContent = openedInquiries.length;
     if (elAll) elAll.textContent = all.length;
+    if (tabCount) tabCount.textContent = all.length;
 
     const statPending = document.getElementById('statPendingInquiries');
     if (statPending) statPending.textContent = newInquiries.length;

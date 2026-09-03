@@ -287,19 +287,6 @@ const EddyStore = {
       });
     }
 
-    // Add or merge cloud cross-device inquiries (from mobile phones or remote browsers)
-    if (Array.isArray(cloudInquiries)) {
-      cloudInquiries.forEach(inq => {
-        if (inq && inq.id) {
-          if (!map.has(inq.id)) {
-            map.set(inq.id, inq);
-          } else {
-            map.set(inq.id, { ...map.get(inq.id), ...inq });
-          }
-        }
-      });
-    }
-
     // If completely empty, load defaults
     if (map.size === 0 && typeof DEFAULT_INQUIRIES !== 'undefined') {
       DEFAULT_INQUIRIES.forEach(inq => map.set(inq.id, inq));
