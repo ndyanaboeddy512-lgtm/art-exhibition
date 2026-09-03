@@ -6,6 +6,29 @@
 
 const fs = require('fs');
 const path = require('path');
+
+// Automatically parse .env if present
+const envPath = path.join(__dirname, '..', '.env');
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, 'utf-8');
+  envContent.split('\n').forEach(line => {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#')) {
+      const idx = trimmed.indexOf('=');
+      if (idx > 0) {
+        const key = trimmed.slice(0, idx).trim();
+        let val = trimmed.slice(idx + 1).trim();
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+          val = val.slice(1, -1);
+        }
+        if (!process.env[key]) {
+          process.env[key] = val;
+        }
+      }
+    }
+  });
+}
+
 const db = require('../db');
 
 async function migrate() {
@@ -13,14 +36,13 @@ async function migrate() {
   console.log(' Starting 55 smartCREATIVES Migration to MySQL');
   console.log('====================================================');
 
-  const connected = await db.initDatabase();
-  if (!connected || !db.isAvailable) {
-    console.error('❌ Could not connect to MySQL database. Please check your credentials or ensure MySQL is running.');
+  const pool = await db.getPool();
+  if (!pool || !db.isAvailable) {
+    console.error('❌ Could not connect to MySQL database. Please check your DATABASE_URL credentials or ensure MySQL is running.');
     process.exit(1);
   }
 
   const dataDir = path.join(__dirname, '..', 'data');
-  const pool = db.pool;
 
   try {
     // 1. Migrate Artworks

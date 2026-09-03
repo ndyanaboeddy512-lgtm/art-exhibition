@@ -4,17 +4,28 @@ const path = require('path');
 
 let pool = null;
 let isAvailable = false;
+let isInitializing = false;
+let initPromise = null;
 
 // Determine connection config from environment or local defaults
 function getPoolConfig() {
-  const connectionUrl = process.env.MYSQL_URL || process.env.DATABASE_URL;
+  const connectionUrl = process.env.DATABASE_URL || process.env.MYSQL_URL;
   if (connectionUrl) {
+    const isCloud = connectionUrl.includes('railway') ||
+                    connectionUrl.includes('tidbcloud') ||
+                    connectionUrl.includes('psdb.cloud') ||
+                    connectionUrl.includes('aivencloud') ||
+                    connectionUrl.includes('ssl') ||
+                    process.env.MYSQL_SSL === 'true';
+
     return {
       uri: connectionUrl,
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0,
-      ssl: connectionUrl.includes('ssl') || process.env.MYSQL_SSL === 'true' ? { rejectUnauthorized: false } : undefined
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 10000,
+      ssl: isCloud ? { rejectUnauthorized: false } : undefined
     };
   }
 
@@ -26,8 +37,26 @@ function getPoolConfig() {
     database: process.env.MYSQL_DATABASE || 'art_gallery_db',
     waitForConnections: true,
     connectionLimit: 10,
-    queueLimit: 0
+    queueLimit: 0,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 10000,
+    ssl: process.env.MYSQL_SSL === 'true' ? { rejectUnauthorized: false } : undefined
   };
+}
+
+// Ensure database pool is initialized (resilient against serverless cold-start race conditions)
+async function getPool() {
+  if (pool && isAvailable) return pool;
+  if (isInitializing && initPromise) {
+    await initPromise;
+    return pool;
+  }
+  isInitializing = true;
+  initPromise = initDatabase().finally(() => {
+    isInitializing = false;
+  });
+  await initPromise;
+  return pool;
 }
 
 // Initialize Database connection & create tables if they do not exist
@@ -47,7 +76,7 @@ async function initDatabase() {
         await rootConn.query(`CREATE DATABASE IF NOT EXISTS \`${config.database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
         await rootConn.end();
       } catch (e) {
-        console.warn('Notice verifying MySQL database existence:', e.message);
+        // Notice verifying database existence
       }
     }
 
@@ -55,7 +84,8 @@ async function initDatabase() {
 
     // Verify connectivity
     const connection = await pool.getConnection();
-    console.log(`✓ Connected to MySQL database [${config.uri ? 'Cloud URL' : config.database + '@' + config.host}]`);
+    const maskedUrl = config.uri ? config.uri.replace(/:[^:@]+@/, ':****@') : `${config.database}@${config.host}`;
+    console.log(`✓ Connected to MySQL database [${maskedUrl}]`);
     connection.release();
     isAvailable = true;
 
@@ -67,7 +97,7 @@ async function initDatabase() {
 
     return true;
   } catch (err) {
-    console.warn(`! MySQL unavailable (${err.message}). Using local JSON persistence engine.`);
+    console.warn(`! MySQL notice (${err.message}). Database will retry on next request.`);
     isAvailable = false;
     return false;
   }
@@ -252,8 +282,9 @@ async function seedIfEmpty() {
 // --- ARTWORKS REPOSITORY ---
 
 async function getArtworks() {
-  if (!isAvailable || !pool) return null;
-  const [rows] = await pool.query('SELECT * FROM artworks ORDER BY created_at DESC');
+  const p = await getPool();
+  if (!p) return null;
+  const [rows] = await p.query('SELECT * FROM artworks ORDER BY created_at DESC');
   return rows.map(r => ({
     id: r.id,
     title: r.title,
@@ -274,8 +305,9 @@ async function getArtworks() {
 }
 
 async function getArtworkById(id) {
-  if (!isAvailable || !pool) return null;
-  const [rows] = await pool.query('SELECT * FROM artworks WHERE id = ?', [id]);
+  const p = await getPool();
+  if (!p) return null;
+  const [rows] = await p.query('SELECT * FROM artworks WHERE id = ?', [id]);
   if (rows.length === 0) return null;
   const r = rows[0];
   return {
@@ -298,11 +330,12 @@ async function getArtworkById(id) {
 }
 
 async function createArtwork(artwork) {
-  if (!isAvailable || !pool) return null;
+  const p = await getPool();
+  if (!p) return null;
   if (artwork.featured) {
-    await pool.query('UPDATE artworks SET featured = FALSE');
+    await p.query('UPDATE artworks SET featured = FALSE');
   }
-  await pool.query(
+  await p.query(
     `INSERT INTO artworks (id, title, artist, year, medium, dimensions, price, status, framing, frame_options, provenance, curatorial_statement, featured, image, high_res_zoom)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
@@ -318,17 +351,18 @@ async function createArtwork(artwork) {
 }
 
 async function updateArtwork(id, updates) {
-  if (!isAvailable || !pool) return null;
+  const p = await getPool();
+  if (!p) return null;
   const existing = await getArtworkById(id);
   if (!existing) return null;
 
   const merged = { ...existing, ...updates };
 
   if (updates.featured) {
-    await pool.query('UPDATE artworks SET featured = FALSE');
+    await p.query('UPDATE artworks SET featured = FALSE');
   }
 
-  await pool.query(
+  await p.query(
     `UPDATE artworks SET 
        title = ?, artist = ?, year = ?, medium = ?, dimensions = ?, price = ?,
        status = ?, framing = ?, frame_options = ?, provenance = ?, curatorial_statement = ?,
@@ -345,16 +379,18 @@ async function updateArtwork(id, updates) {
 }
 
 async function deleteArtwork(id) {
-  if (!isAvailable || !pool) return false;
-  const [res] = await pool.query('DELETE FROM artworks WHERE id = ?', [id]);
+  const p = await getPool();
+  if (!p) return false;
+  const [res] = await p.query('DELETE FROM artworks WHERE id = ?', [id]);
   return res.affectedRows > 0;
 }
 
 // --- INQUIRIES REPOSITORY ---
 
 async function getInquiries() {
-  if (!isAvailable || !pool) return null;
-  const [rows] = await pool.query('SELECT * FROM inquiries ORDER BY date DESC');
+  const p = await getPool();
+  if (!p) return null;
+  const [rows] = await p.query('SELECT * FROM inquiries ORDER BY date DESC');
   return rows.map(r => ({
     id: r.id,
     artworkId: r.artwork_id,
@@ -376,10 +412,11 @@ async function getInquiries() {
 }
 
 async function createInquiry(inquiry) {
-  if (!isAvailable || !pool) return null;
+  const p = await getPool();
+  if (!p) return null;
   const inqDate = inquiry.date ? new Date(inquiry.date) : new Date();
 
-  await pool.query(
+  await p.query(
     `INSERT INTO inquiries (id, artwork_id, artwork_title, artwork_artist, artwork_price, artwork_image, collector_name, collector_email, collector_phone, frame_preference, notes, status, opened, is_customer_submission, date, curator_notes)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON DUPLICATE KEY UPDATE
@@ -396,7 +433,7 @@ async function createInquiry(inquiry) {
     ]
   );
 
-  const [rows] = await pool.query('SELECT * FROM inquiries WHERE id = ?', [inquiry.id]);
+  const [rows] = await p.query('SELECT * FROM inquiries WHERE id = ?', [inquiry.id]);
   if (rows.length === 0) return inquiry;
   const r = rows[0];
   return {
@@ -420,8 +457,9 @@ async function createInquiry(inquiry) {
 }
 
 async function updateInquiry(id, updates) {
-  if (!isAvailable || !pool) return null;
-  const [existing] = await pool.query('SELECT * FROM inquiries WHERE id = ?', [id]);
+  const p = await getPool();
+  if (!p) return null;
+  const [existing] = await p.query('SELECT * FROM inquiries WHERE id = ?', [id]);
   if (existing.length === 0) return null;
 
   const current = existing[0];
@@ -429,12 +467,12 @@ async function updateInquiry(id, updates) {
   const newOpened = updates.opened !== undefined ? (updates.opened ? 1 : 0) : current.opened;
   const newCuratorNotes = updates.curatorNotes !== undefined ? updates.curatorNotes : current.curator_notes;
 
-  await pool.query(
+  await p.query(
     'UPDATE inquiries SET status = ?, opened = ?, curator_notes = ? WHERE id = ?',
     [newStatus, newOpened, newCuratorNotes, id]
   );
 
-  const [updated] = await pool.query('SELECT * FROM inquiries WHERE id = ?', [id]);
+  const [updated] = await p.query('SELECT * FROM inquiries WHERE id = ?', [id]);
   const r = updated[0];
   return {
     id: r.id,
@@ -456,11 +494,59 @@ async function updateInquiry(id, updates) {
   };
 }
 
+async function syncInquiries(inquiriesList) {
+  const p = await getPool();
+  if (!p || !Array.isArray(inquiriesList)) return [];
+  for (const inq of inquiriesList) {
+    if (inq && inq.id) {
+      await createInquiry(inq);
+    }
+  }
+  return getInquiries();
+}
+
 // --- USERS & AUTH REPOSITORY ---
 
+async function getUsers() {
+  const p = await getPool();
+  if (!p) return [];
+  const [rows] = await p.query('SELECT * FROM users ORDER BY created_at DESC');
+  return rows.map(r => ({
+    id: r.id,
+    name: r.name,
+    email: r.email,
+    password: r.password,
+    tier: r.tier,
+    phone: r.phone,
+    address: r.address,
+    wishlist: typeof r.wishlist === 'string' ? JSON.parse(r.wishlist) : (r.wishlist || []),
+    role: r.role
+  }));
+}
+
 async function getUserByEmail(email) {
-  if (!isAvailable || !pool) return null;
-  const [rows] = await pool.query('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [email]);
+  const p = await getPool();
+  if (!p) return null;
+  const [rows] = await p.query('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [email]);
+  if (rows.length === 0) return null;
+  const r = rows[0];
+  return {
+    id: r.id,
+    name: r.name,
+    email: r.email,
+    password: r.password,
+    tier: r.tier,
+    phone: r.phone,
+    address: r.address,
+    wishlist: typeof r.wishlist === 'string' ? JSON.parse(r.wishlist) : (r.wishlist || []),
+    role: r.role
+  };
+}
+
+async function getUserById(id) {
+  const p = await getPool();
+  if (!p) return null;
+  const [rows] = await p.query('SELECT * FROM users WHERE id = ?', [id]);
   if (rows.length === 0) return null;
   const r = rows[0];
   return {
@@ -477,8 +563,9 @@ async function getUserByEmail(email) {
 }
 
 async function createUser(user) {
-  if (!isAvailable || !pool) return null;
-  await pool.query(
+  const p = await getPool();
+  if (!p) return null;
+  await p.query(
     `INSERT INTO users (id, name, email, password, tier, phone, address, wishlist, role)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
@@ -492,7 +579,8 @@ async function createUser(user) {
 }
 
 async function updateUserProfile(email, updates) {
-  if (!isAvailable || !pool) return null;
+  const p = await getPool();
+  if (!p) return null;
   const user = await getUserByEmail(email);
   if (!user) return null;
 
@@ -501,28 +589,40 @@ async function updateUserProfile(email, updates) {
   const address = updates.address !== undefined ? updates.address : user.address;
   const password = updates.password ? updates.password : user.password;
 
-  await pool.query(
+  await p.query(
     'UPDATE users SET name = ?, phone = ?, address = ?, password = ? WHERE LOWER(email) = LOWER(?)',
     [name, phone, address, password, email]
   );
   return getUserByEmail(email);
 }
 
+async function updateUserWishlist(userId, wishlist) {
+  const p = await getPool();
+  if (!p) return null;
+  await p.query('UPDATE users SET wishlist = ? WHERE id = ?', [JSON.stringify(wishlist || []), userId]);
+  return getUserById(userId);
+}
+
+// --- ADMIN REPOSITORY ---
+
 async function getAdmin() {
-  if (!isAvailable || !pool) return null;
-  const [rows] = await pool.query('SELECT * FROM admins LIMIT 1');
+  const p = await getPool();
+  if (!p) return null;
+  const [rows] = await p.query('SELECT * FROM admins LIMIT 1');
   if (rows.length === 0) return null;
   return rows[0];
 }
 
 async function updateAdminPassword(newPassword) {
-  if (!isAvailable || !pool) return false;
-  await pool.query('UPDATE admins SET password = ? LIMIT 1', [newPassword]);
+  const p = await getPool();
+  if (!p) return false;
+  await p.query('UPDATE admins SET password = ? LIMIT 1', [newPassword]);
   return true;
 }
 
 module.exports = {
   initDatabase,
+  getPool,
   get isAvailable() { return isAvailable; },
   get pool() { return pool; },
   getArtworks,
@@ -533,9 +633,13 @@ module.exports = {
   getInquiries,
   createInquiry,
   updateInquiry,
+  syncInquiries,
+  getUsers,
   getUserByEmail,
+  getUserById,
   createUser,
   updateUserProfile,
+  updateUserWishlist,
   getAdmin,
   updateAdminPassword
 };

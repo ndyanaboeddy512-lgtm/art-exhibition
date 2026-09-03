@@ -1,18 +1,43 @@
-const express = require('express');
-const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+
+// Automatically load .env if present
+const envPath = path.join(__dirname, '.env');
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, 'utf-8');
+  envContent.split('\n').forEach(line => {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#')) {
+      const idx = trimmed.indexOf('=');
+      if (idx > 0) {
+        const key = trimmed.slice(0, idx).trim();
+        let val = trimmed.slice(idx + 1).trim();
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+          val = val.slice(1, -1);
+        }
+        if (!process.env[key]) {
+          process.env[key] = val;
+        }
+      }
+    }
+  });
+}
+
+const express = require('express');
+const cors = require('cors');
 const db = require('./db');
+const { sendInquiryNotifications, getSiteUrl, getAdminEmail } = require('./services/email');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const SITE_URL = getSiteUrl();
 
-// Initialize MySQL database in background
+// Initialize MySQL database pool in background
 db.initDatabase().catch(err => console.warn('Database init notice:', err.message));
 
-// Enable CORS and generous JSON body size for high-res base64 artwork uploads
-app.use(cors());
+// Enable CORS (supports custom domain and local preview) and generous body size
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
@@ -150,11 +175,15 @@ app.get(['/admin', '/admin.html'], (req, res) => {
 // --- API ROUTES ---
 
 // Health check
-app.get(['/api/health', '/health'], (req, res) => {
+app.get(['/api/health', '/health'], async (req, res) => {
+  const pool = await db.getPool();
   res.json({
     status: 'ok',
     gallery: '55 smartCREATIVES — Editorial Fine Art',
-    database: db.isAvailable ? 'mysql' : 'json-fallback',
+    database: db.isAvailable ? 'mysql' : 'unavailable',
+    siteUrl: SITE_URL,
+    emailService: (process.env.RESEND_API_KEY || process.env.SENDGRID_API_KEY) ? 'configured' : 'simulated',
+    adminEmail: getAdminEmail(),
     timestamp: new Date().toISOString()
   });
 });
@@ -343,7 +372,8 @@ app.post(['/api/inquiries', '/inquiries'], async (req, res) => {
   };
 
   let savedInquiry = newInquiry;
-  if (db.isAvailable) {
+  const pool = await db.getPool();
+  if (pool && db.isAvailable) {
     try {
       const dbResult = await db.createInquiry(newInquiry);
       if (dbResult) savedInquiry = dbResult;
@@ -353,7 +383,13 @@ app.post(['/api/inquiries', '/inquiries'], async (req, res) => {
     }
   }
 
-  // Also maintain JSON fallback
+  // Automated transactional emails (Customer Confirmation & Curator Alert)
+  // Non-blocking & graceful: failure to send email will NEVER fail the inquiry submission
+  sendInquiryNotifications(savedInquiry).catch(err => {
+    console.warn('Notice sending inquiry notification emails:', err.message);
+  });
+
+  // Also maintain JSON mirror for local offline development
   const inquiries = readJSON(INQUIRIES_FILE);
   const existingIdx = inquiries.findIndex(i => i.id === newId);
   if (existingIdx > -1) {

@@ -1,5 +1,23 @@
 [
   {
+    "id": "inq-6678",
+    "artworkId": "art-01",
+    "artworkTitle": "Night Shadows in Warm Earth",
+    "artworkArtist": "55 smartCREATIVES",
+    "artworkPrice": 14500,
+    "artworkImage": "",
+    "collectorName": "Laurent Mercier",
+    "collectorEmail": "laurent.mercier@luxury-holdings.ch",
+    "collectorPhone": "+41 22 731 9900",
+    "framePreference": "Floating Charcoal Oak",
+    "notes": "Interested in acquiring this piece for our Geneva office.",
+    "status": "Contacted",
+    "opened": true,
+    "isCustomerSubmission": true,
+    "date": "2026-09-03T14:24:45.000Z",
+    "curatorNotes": "Called client in Geneva. Proposal sent."
+  },
+  {
     "id": "inq-7786",
     "artworkId": "art-01",
     "artworkTitle": "Night Shadows in Warm Earth",
