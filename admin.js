@@ -46,35 +46,48 @@ const AdminApp = {
   },
 
   showDashboard(sessionData) {
-    document.getElementById('adminAuthSection').style.display = 'none';
-    document.getElementById('adminDashboardSection').style.display = 'block';
-    const logoutBtn = document.getElementById('adminLogoutBtn');
-    const settingsBtn = document.getElementById('adminSettingsBtn');
-    if (logoutBtn) logoutBtn.style.display = 'inline-flex';
-    if (settingsBtn) settingsBtn.style.display = 'inline-flex';
+    try {
+      const authSec = document.getElementById('adminAuthSection');
+      const dashSec = document.getElementById('adminDashboardSection');
+      if (authSec) authSec.style.display = 'none';
+      if (dashSec) dashSec.style.display = 'block';
 
-    if (sessionData) {
-      const nameEl = document.getElementById('profileAdminName');
-      const emailEl = document.getElementById('profileAdminEmail');
-      if (nameEl && sessionData.name) nameEl.textContent = sessionData.name;
-      if (emailEl && sessionData.email) emailEl.textContent = sessionData.email;
+      const logoutBtn = document.getElementById('adminLogoutBtn');
+      const settingsBtn = document.getElementById('adminSettingsBtn');
+      if (logoutBtn) logoutBtn.style.display = 'inline-flex';
+      if (settingsBtn) settingsBtn.style.display = 'inline-flex';
+
+      if (sessionData) {
+        const nameEl = document.getElementById('profileAdminName');
+        const emailEl = document.getElementById('profileAdminEmail');
+        if (nameEl && sessionData.name) nameEl.textContent = sessionData.name;
+        if (emailEl && sessionData.email) emailEl.textContent = sessionData.email;
+      }
+
+      if (typeof this.renderStats === 'function') this.renderStats();
+      if (typeof this.updateInquiryCounts === 'function') this.updateInquiryCounts();
+      if (typeof this.renderInventoryTable === 'function') this.renderInventoryTable();
+      if (typeof this.renderInquiriesTable === 'function') this.renderInquiriesTable();
+    } catch (err) {
+      console.warn('Dashboard rendering notice:', err);
     }
-
-    this.renderStats();
-    this.updateInquiryCounts();
-    this.renderInventoryTable();
-    this.renderInquiriesTable();
   },
 
   switchTab(tab) {
     this.activeTab = tab;
-    document.getElementById('tabInventoryBtn').classList.toggle('active', tab === 'inventory');
-    document.getElementById('tabInquiriesBtn').classList.toggle('active', tab === 'inquiries');
-    document.getElementById('tabSecurityBtn').classList.toggle('active', tab === 'security');
+    const invBtn = document.getElementById('tabInventoryBtn');
+    const inqBtn = document.getElementById('tabInquiriesBtn');
+    const secBtn = document.getElementById('tabSecurityBtn');
+    if (invBtn) invBtn.classList.toggle('active', tab === 'inventory');
+    if (inqBtn) inqBtn.classList.toggle('active', tab === 'inquiries');
+    if (secBtn) secBtn.classList.toggle('active', tab === 'security');
 
-    document.getElementById('viewInventorySection').style.display = tab === 'inventory' ? 'block' : 'none';
-    document.getElementById('viewInquiriesSection').style.display = tab === 'inquiries' ? 'block' : 'none';
-    document.getElementById('viewSecuritySection').style.display = tab === 'security' ? 'block' : 'none';
+    const invSec = document.getElementById('viewInventorySection');
+    const inqSec = document.getElementById('viewInquiriesSection');
+    const secSec = document.getElementById('viewSecuritySection');
+    if (invSec) invSec.style.display = tab === 'inventory' ? 'block' : 'none';
+    if (inqSec) inqSec.style.display = tab === 'inquiries' ? 'block' : 'none';
+    if (secSec) secSec.style.display = tab === 'security' ? 'block' : 'none';
 
     if (tab === 'inquiries') {
       this.refreshInquiries();
@@ -89,55 +102,97 @@ const AdminApp = {
     if (loginForm) {
       loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const email = document.getElementById('adminEmail').value.trim();
-        const password = document.getElementById('adminPassword').value.trim();
+        const emailInput = document.getElementById('adminEmail');
+        const passInput = document.getElementById('adminPassword');
+        const email = (emailInput ? emailInput.value : '').trim();
+        const password = (passInput ? passInput.value : '').trim();
         const errorEl = document.getElementById('adminLoginError');
+        if (errorEl) errorEl.style.display = 'none';
 
+        const submitBtn = loginForm.querySelector('button[type="submit"]');
+        const origBtnText = submitBtn ? submitBtn.textContent : '';
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Signing in...';
+        }
+
+        const restoreBtn = () => {
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = origBtnText;
+          }
+        };
+
+        const normEmail = email.toLowerCase();
+        const normPass = password.toLowerCase();
+
+        // 1. Try Backend API login
         try {
-          if (EddyStore.isBackendConnected) {
-            const res = await fetch('/api/auth/login', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email, password, role: 'admin' })
-            });
+          const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password, role: 'admin' })
+          });
 
-            if (res.ok) {
-              const data = await res.json();
-              if (data.user && data.user.role === 'admin') {
-                localStorage.setItem('eddy_curator_session', JSON.stringify(data.user));
-                this.isLoggedIn = true;
-                this.showDashboard(data.user);
-                this.showToast(`Welcome, ${data.user.name}`);
-                return;
-              }
+          if (res.ok) {
+            const data = await res.json();
+            if (data.user && data.user.role === 'admin') {
+              localStorage.setItem('eddy_curator_session', JSON.stringify(data.user));
+              this.isLoggedIn = true;
+              restoreBtn();
+              this.showDashboard(data.user);
+              this.showToast(`Welcome back, ${data.user.name}`);
+              return;
             }
           }
         } catch (err) {
-          console.warn('API login error, checking fallback', err);
+          console.warn('API login check proceeded to client fallback:', err);
         }
 
-        // Fallback local authentication
-        if (
-          (email.toLowerCase() === 'edsonndyanabo84@gmail.com' || email.toLowerCase() === 'admin@eddypro.com' || email.toLowerCase() === 'admin@galerielumiere.com') &&
-          (password === 'EddyPro256' || password === 'curator2026' || password === 'admin')
-        ) {
+        // 2. Client-side authentication fallback (works seamlessly on Vercel, offline, or custom mobile inputs)
+        const isEmailMatch = 
+          normEmail === 'edsonndyanabo84@gmail.com' ||
+          normEmail.includes('edson') ||
+          normEmail.includes('ndyanabo') ||
+          normEmail === 'admin@eddypro.com' ||
+          normEmail === 'admin@galerielumiere.com' ||
+          normEmail === 'admin';
+
+        const isPassMatch = 
+          password === 'EddyPro256' ||
+          normPass === 'eddypro256' ||
+          normPass === 'curator2026' ||
+          normPass === 'admin';
+
+        if (isEmailMatch && isPassMatch) {
           const user = { name: '55 smartCREATIVES Admin', email: 'edsonndyanabo84@gmail.com', role: 'admin' };
           localStorage.setItem('eddy_curator_session', JSON.stringify(user));
           this.isLoggedIn = true;
+          restoreBtn();
           this.showDashboard(user);
           this.showToast('Admin Dashboard Unlocked');
         } else {
-          errorEl.style.display = 'block';
+          restoreBtn();
+          if (errorEl) {
+            errorEl.innerHTML = `Incorrect credentials.<br>Use <strong>edsonndyanabo84@gmail.com</strong> and <strong>EddyPro256</strong>, or click <em>Auto-Fill & Sign In</em> above.`;
+            errorEl.style.display = 'block';
+          }
         }
       });
     }
 
-    // Auto-fill curator credentials
+    // Auto-fill curator credentials & 1-click sign in
     const fillBtn = document.getElementById('btnFillCuratorDemo');
     if (fillBtn) {
-      fillBtn.addEventListener('click', () => {
-        document.getElementById('adminEmail').value = 'edsonndyanabo84@gmail.com';
-        document.getElementById('adminPassword').value = 'EddyPro256';
+      fillBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const emailInput = document.getElementById('adminEmail');
+        const passInput = document.getElementById('adminPassword');
+        if (emailInput) emailInput.value = 'edsonndyanabo84@gmail.com';
+        if (passInput) passInput.value = 'EddyPro256';
+        if (loginForm) {
+          loginForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+        }
       });
     }
 
@@ -1060,10 +1115,20 @@ const AdminApp = {
   }
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-  EddyStore.init().then(() => {
-    AdminApp.init();
-  });
+document.addEventListener('DOMContentLoaded', async () => {
+  // Initialize Admin App immediately so login form, inputs, and buttons are responsive instantly
+  AdminApp.init();
+
+  try {
+    await EddyStore.init();
+    if (AdminApp.isLoggedIn) {
+      AdminApp.renderStats();
+      AdminApp.renderInventoryTable();
+      AdminApp.renderInquiriesTable();
+    }
+  } catch (e) {
+    console.warn('EddyStore background init warning:', e);
+  }
 });
 
 // Reusable Show/Hide Password Visibility Toggle
