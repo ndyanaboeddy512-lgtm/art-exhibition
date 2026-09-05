@@ -35,9 +35,14 @@ function isValidEmail(email) {
 async function sendEmail({ to, subject, text, html, replyTo }) {
   const resendKey = process.env.RESEND_API_KEY;
   const sendgridKey = process.env.SENDGRID_API_KEY;
+  const smtpUser = process.env.SMTP_USER || process.env.GMAIL_USER;
+  const smtpPass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD;
+  const hasSmtp = Boolean(smtpUser && smtpPass && !smtpPass.includes('your_app_password'));
   const from = getSenderEmail();
+  let resendError = null;
+  let smtpError = null;
 
-  // 1. Resend API (Preferred for Vercel/Node.js)
+  // 1. Resend API (Preferred for verified custom domains)
   if (resendKey && !resendKey.includes('your_resend_api_key')) {
     try {
       const res = await fetch(RESEND_API_URL, {
@@ -61,23 +66,21 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
         console.log(`✓ [Resend Email Sent] to: ${to} | Subject: "${subject}" | id: ${data.id || 'ok'}`);
         return { success: true, provider: 'resend', id: data.id };
       } else {
+        resendError = data.message || 'Unknown Resend error';
         if (data.message && data.message.includes('only send testing emails to your own email address')) {
-          console.warn(`! [Resend Domain Restriction]: Resend default 'onboarding@resend.dev' only permits delivering to your registered Resend account email address. To deliver confirmation emails to any customer email address worldwide, add and verify your domain in Resend at https://resend.com/domains or configure Gmail SMTP.`);
+          console.warn(`! [Resend Domain Restriction]: Resend 'onboarding@resend.dev' only permits sending to the account owner. Automatically falling back to Gmail SMTP for customer: ${to}...`);
         } else {
-          console.warn(`! [Resend Email Error]:`, data);
+          console.warn(`! [Resend Email Error]:`, data, `Falling back to Gmail SMTP...`);
         }
-        return { success: false, provider: 'resend', error: data.message || 'Unknown error' };
       }
     } catch (err) {
-      console.warn(`! [Resend Network Exception]:`, err.message);
-      return { success: false, provider: 'resend', error: err.message };
+      resendError = err.message;
+      console.warn(`! [Resend Network Exception]:`, err.message, `Falling back to Gmail SMTP...`);
     }
   }
 
   // 2. SMTP / Gmail Transport (Universal delivery to ANY recipient worldwide with 0 domain setup)
-  const smtpUser = process.env.SMTP_USER || process.env.GMAIL_USER;
-  const smtpPass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD;
-  if (smtpUser && smtpPass && !smtpPass.includes('your_app_password')) {
+  if (hasSmtp) {
     try {
       const nodemailer = require('nodemailer');
       const transporter = nodemailer.createTransport({
@@ -96,15 +99,15 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
         html,
         replyTo: replyTo || undefined
       });
-      console.log(`✓ [SMTP Email Sent] to: ${to} | Subject: "${subject}" | id: ${info.messageId}`);
+      console.log(`✓ [Gmail SMTP Email Sent] to: ${to} | Subject: "${subject}" | id: ${info.messageId}`);
       return { success: true, provider: 'smtp', id: info.messageId };
     } catch (err) {
+      smtpError = err.message;
       console.warn(`! [SMTP Email Exception]:`, err.message);
-      return { success: false, provider: 'smtp', error: err.message };
     }
   }
 
-  // 3. SendGrid API (Fallback)
+  // 3. SendGrid API (Tertiary Fallback)
   if (sendgridKey && !sendgridKey.includes('your_sendgrid_key')) {
     try {
       const content = [];
@@ -118,10 +121,11 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          personalizations: [{ to: [{ email: to }] }],
+          personalizations: [{ to: (Array.isArray(to) ? to : [to]).map(e => ({ email: e })) }],
           from: { email: from.includes('<') ? from.match(/<([^>]+)>/)[1] : from, name: '55 smartCREATIVES' },
           subject,
-          content
+          content,
+          reply_to: replyTo ? { email: replyTo } : undefined
         })
       });
 
@@ -131,15 +135,22 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
       } else {
         const errText = await res.text();
         console.warn(`! [SendGrid Error]:`, errText);
-        return { success: false, provider: 'sendgrid', error: errText };
       }
     } catch (err) {
       console.warn(`! [SendGrid Network Exception]:`, err.message);
-      return { success: false, provider: 'sendgrid', error: err.message };
     }
   }
 
-  // 4. Simulated Mode (when API keys are not yet configured in local dev)
+  // 4. Return error if providers were configured but all failed
+  if (resendKey || hasSmtp || sendgridKey) {
+    return {
+      success: false,
+      provider: hasSmtp ? 'smtp_fallback_failed' : 'all_providers_failed',
+      error: smtpError || resendError || 'Email delivery failed across all configured providers.'
+    };
+  }
+
+  // 5. Simulated Mode (when no real email providers are configured in local dev)
   console.log(`ℹ [Email Notice - Simulated] to: ${to} | Subject: "${subject}"`);
   return { success: true, simulated: true };
 }

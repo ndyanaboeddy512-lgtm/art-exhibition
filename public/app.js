@@ -210,13 +210,14 @@ const EddyStore = {
     // Attempt connecting to the lightweight Express REST API
     try {
       const res = await fetch('/api/artworks');
-      if (res.ok) {
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
         this.artworks = await res.json();
         this.isBackendConnected = true;
         this.saveArtworksLocally();
         console.log(`✓ Connected to 55 smartCREATIVES Express Backend (${this.artworks.length} artworks loaded)`);
       } else {
-        throw new Error('API responded with non-200');
+        throw new Error(`API responded with status ${res.status}`);
       }
     } catch (err) {
       console.warn('Backend server not detected or offline. Utilizing local persistence engine.', err.message);
@@ -252,7 +253,8 @@ const EddyStore = {
         headers['Authorization'] = `Bearer ${curatorToken}`;
       }
       const res = await fetch('/api/inquiries', { headers });
-      if (res.ok) {
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
         serverInquiries = await res.json();
         this.isBackendConnected = true;
       }
@@ -313,15 +315,35 @@ const EddyStore = {
 
   async addInquiry(inquiryData) {
     // Direct submission to secure server-side API
-    const res = await fetch('/api/inquiries', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(inquiryData)
-    });
+    let res;
+    try {
+      res = await fetch('/api/inquiries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(inquiryData)
+      });
+    } catch (netErr) {
+      throw new Error('Network connection error. Please check your internet connection and try again.');
+    }
 
-    const result = await res.json();
+    const contentType = res.headers.get('content-type') || '';
+    let result = null;
+    if (contentType.includes('application/json')) {
+      try {
+        result = await res.json();
+      } catch (e) {
+        result = null;
+      }
+    }
+
     if (!res.ok) {
-      throw new Error(result.message || result.error || 'Failed to submit inquiry to server.');
+      const serverMessage = result && (result.message || result.error);
+      const errMsg = serverMessage || `The gallery server could not process your inquiry at this moment (HTTP ${res.status}). Please try again shortly or contact the curator directly.`;
+      throw new Error(errMsg);
+    }
+
+    if (!result) {
+      throw new Error('Received an unexpected response format from the server. Please refresh the page and try again.');
     }
 
     const saved = result.inquiry || result;
@@ -336,7 +358,8 @@ const EddyStore = {
     try {
       const url = artworkId ? `/api/reviews?artworkId=${encodeURIComponent(artworkId)}` : '/api/reviews';
       const res = await fetch(url);
-      if (res.ok) {
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
         this.reviews = await res.json();
       }
     } catch (e) {
@@ -347,14 +370,29 @@ const EddyStore = {
   },
 
   async addReview(reviewData) {
-    const res = await fetch('/api/reviews', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(reviewData)
-    });
-    const data = await res.json();
+    let res;
+    try {
+      res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reviewData)
+      });
+    } catch (netErr) {
+      throw new Error('Network connection error. Please try again.');
+    }
+
+    const contentType = res.headers.get('content-type') || '';
+    let data = null;
+    if (contentType.includes('application/json')) {
+      try {
+        data = await res.json();
+      } catch (e) {
+        data = null;
+      }
+    }
     if (!res.ok) {
-      throw new Error(data.message || data.error || 'Failed to submit review');
+      const errMsg = (data && (data.message || data.error)) || `Failed to submit review (Server status ${res.status})`;
+      throw new Error(errMsg);
     }
     return data;
   },
