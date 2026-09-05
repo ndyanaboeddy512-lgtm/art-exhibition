@@ -158,7 +158,7 @@ async function sendCustomerConfirmation(inquiry) {
   }
 
   const subject = "We've received your inquiry — 55 smartCREATIVES";
-  const exactMessage = "55 smartCREATIVES received your inquiry. Let's get back to you shortly with an appropriate reply. Thank you.";
+  const exactMessage = "Thank you for your enquiry. We are preparing a response with the available artwork details.";
 
   const artworkTitle = inquiry.artworkTitle || 'Curated Artwork';
   const collectorName = inquiry.collectorName || 'Valued Client';
@@ -192,7 +192,7 @@ async function sendCustomerConfirmation(inquiry) {
   <div class="container">
     <div class="header">
       <div class="brand">55 smartCREATIVES</div>
-      <div class="tagline">FINE ART GALLERY &bull; CURATOR DIRECTORATE</div>
+      <div class="tagline">CREATIVE PLATFORM &bull; CURATOR DIRECTORATE</div>
     </div>
     <div class="content">
       <div class="greeting">Hello ${collectorName},</div>
@@ -213,7 +213,7 @@ async function sendCustomerConfirmation(inquiry) {
       </div>
     </div>
     <div class="footer">
-      55 smartCREATIVES &bull; Curated Luxury Art &bull; Reference: ${inquiry.id || 'INQ'}
+      55 smartCREATIVES &bull; Creative Platform &bull; Reference: ${inquiry.id || 'INQ'}
     </div>
   </div>
 </body>
@@ -326,7 +326,7 @@ async function sendAdminNotification(inquiry) {
       </div>
     </div>
     <div class="footer">
-      55 smartCREATIVES Live Inquiry Dispatch &bull; Connected to MySQL
+      55 smartCREATIVES Creative Platform &bull; Live Inquiry Dispatch
     </div>
   </div>
 </body>
@@ -339,6 +339,64 @@ async function sendAdminNotification(inquiry) {
     text: `New customer inquiry received from ${collectorName} (${collectorEmail}) regarding "${artworkTitle}". Message: "${notes}"`,
     html: adminHtml,
     replyTo: collectorEmail
+  });
+}
+
+/**
+ * Send customized/verified artwork reply directly to the customer (via Make.com or curator action)
+ */
+async function sendCustomerReply({ to, subject, html, text, inquiryId, artworkTitle }) {
+  const rawEmail = to;
+  const customerEmail = rawEmail ? rawEmail.trim() : '';
+
+  if (!isValidEmail(customerEmail)) {
+    console.warn(`! [Customer Reply Skipped] Invalid customer email: "${rawEmail}".`);
+    return { success: false, skipped: true, error: 'Invalid email format' };
+  }
+
+  const emailSubject = subject || `Regarding your inquiry: ${artworkTitle || '55 smartCREATIVES'}`;
+  const adminEmail = getAdminEmail();
+  const siteUrl = getSiteUrl();
+
+  const formattedHtml = html || `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${emailSubject}</title>
+  <style>
+    body { margin: 0; padding: 0; background-color: #121211; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #e0e0e0; }
+    .container { max-width: 600px; margin: 20px auto; background-color: #181716; border: 1px solid #2a2826; border-radius: 4px; overflow: hidden; }
+    .header { padding: 32px 28px 24px; text-align: center; border-bottom: 1px solid #2a2826; background: #141312; }
+    .brand { font-size: 20px; font-weight: 700; letter-spacing: 0.18em; color: #ffffff; text-transform: uppercase; }
+    .tagline { font-size: 11px; letter-spacing: 0.25em; color: #c2a57e; text-transform: uppercase; margin-top: 6px; }
+    .content { padding: 36px 32px; line-height: 1.7; font-size: 15px; color: #f0f0f0; white-space: pre-line; }
+    .footer { padding: 20px 32px; border-top: 1px solid #2a2826; font-size: 12px; color: #666; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="brand">55 smartCREATIVES</div>
+      <div class="tagline">CREATIVE PLATFORM &bull; CURATOR DIRECTORATE</div>
+    </div>
+    <div class="content">
+${text || ''}
+    </div>
+    <div class="footer">
+      55 smartCREATIVES &bull; Creative Platform &bull; Reference: ${inquiryId || 'INQ'}
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+  return sendEmail({
+    to: customerEmail,
+    subject: emailSubject,
+    text: text || undefined,
+    html: formattedHtml,
+    replyTo: adminEmail
   });
 }
 
@@ -362,6 +420,7 @@ module.exports = {
   isValidEmail,
   sendCustomerConfirmation,
   sendAdminNotification,
+  sendCustomerReply,
   sendInquiryNotifications,
   getSiteUrl,
   getAdminEmail

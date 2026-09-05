@@ -21,6 +21,7 @@
       <nav class="nav-desktop">
         <a href="#exhibition" class="nav-link">Featured Art</a>
         <a href="#catalog" class="nav-link active">Gallery</a>
+        <a href="#reviews" class="nav-link">Collector Reviews</a>
         <a href="#salon" class="nav-link">Book a Viewing</a>
         <a href="auth.html" class="nav-link">My Account</a>
       </nav>
@@ -60,6 +61,7 @@
     <nav class="mobile-nav-links">
       <a href="#exhibition" class="mobile-nav-link">Featured Art</a>
       <a href="#catalog" class="mobile-nav-link">All Artworks</a>
+      <a href="#reviews" class="mobile-nav-link">Collector Reviews</a>
       <a href="#salon" class="mobile-nav-link">Book a Viewing</a>
       <a href="auth.html" class="mobile-nav-link">My Account</a>
       <a href="auth.html#wishlist" class="mobile-nav-link">Saved Artworks</a>
@@ -179,6 +181,26 @@
       </div>
     </section>
 
+    <!-- Visitor Reviews & Collector Testimonials Section -->
+    <section class="testimonials-section" id="reviews">
+      <div class="container">
+        <div class="testimonials-header">
+          <div>
+            <span class="tracking-wide" style="color: var(--accent-gold); display: block; margin-bottom: 0.5rem;">Curatorial Accolades</span>
+            <h2 style="font-size: clamp(2.2rem, 3.5vw, 3rem); font-weight: 300; margin: 0;">Collector Testimonials & Reviews</h2>
+            <p style="color: var(--text-secondary); margin-top: 0.5rem; font-size: 0.95rem;">
+              Reflections and acquisition experiences shared by our esteemed private and corporate patrons.
+            </p>
+          </div>
+          <button class="btn-primary" onclick="window.openReviewModal()">+ Leave a Testimonial</button>
+        </div>
+
+        <div class="testimonials-grid" id="testimonialsGrid">
+          <!-- Dynamically populated from /api/reviews -->
+        </div>
+      </div>
+    </section>
+
     <!-- Private Consultation & Inquiries Banner -->
     <section class="hero-exhibition" id="salon" style="background: var(--bg-secondary); border-top: 1px solid var(--border-subtle);">
       <div class="container" style="text-align: center; max-width: 860px; padding: 5rem 1.5rem;">
@@ -269,6 +291,13 @@
           <input type="hidden" id="modalArtworkImageInput">
           <input type="hidden" id="modalArtworkArtistInput">
 
+          <!-- Security Honeypot and Time-gate fields -->
+          <div class="honeypot-field" aria-hidden="true">
+            <label for="inquiryHoneypot">Do not fill this field</label>
+            <input type="text" id="inquiryHoneypot" name="website_hp" tabindex="-1" autocomplete="off">
+            <input type="hidden" id="inquiryTimestamp" name="_ts">
+          </div>
+
           <div class="form-row">
             <div class="form-group">
               <label for="inquiryName">Your Full Name *</label>
@@ -301,6 +330,74 @@
           <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 2rem;">
             <span style="font-size: 0.75rem; color: var(--text-muted);">Your information is safe and never shared.</span>
             <button type="submit" class="btn-primary">Send Inquiry</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Visitor Review / Testimonial Modal -->
+  <div class="modal-backdrop" id="reviewModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <span class="tracking-wide" style="color: var(--accent-gold); display: block; margin-bottom: 4px;">Collector Accolade</span>
+          <h3>Share Your Gallery Experience</h3>
+          <p>Your review will be catalogued and displayed following curatorial review.</p>
+        </div>
+        <button class="modal-close-btn" onclick="window.closeReviewModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div id="reviewPieceNotice" style="display: none; padding: 0.75rem 1rem; background: var(--bg-secondary); border-left: 3px solid var(--accent-gold); font-size: 0.88rem; margin-bottom: 1.5rem;"></div>
+
+        <form id="visitorReviewForm">
+          <input type="hidden" id="reviewArtworkId">
+          <input type="hidden" id="reviewArtworkTitle">
+
+          <!-- Security Honeypot and Time-gate fields -->
+          <div class="honeypot-field" aria-hidden="true">
+            <label for="reviewHoneypot">Do not fill this field</label>
+            <input type="text" id="reviewHoneypot" name="website_hp" tabindex="-1" autocomplete="off">
+            <input type="hidden" id="reviewTimestamp" name="_ts">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="reviewAuthorName">Your Full Name *</label>
+              <input type="text" id="reviewAuthorName" class="form-control" placeholder="e.g. Laurent Mercier" required maxlength="60">
+            </div>
+            <div class="form-group">
+              <label for="reviewAuthorEmail">Your Email Address *</label>
+              <input type="email" id="reviewAuthorEmail" class="form-control" placeholder="name@email.com" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="reviewAuthorLocation">Your Location (City, Country)</label>
+              <input type="text" id="reviewAuthorLocation" class="form-control" placeholder="e.g. Geneva, Switzerland" maxlength="100">
+            </div>
+            <div class="form-group">
+              <label for="reviewRatingSelect">Curatorial Rating *</label>
+              <select id="reviewRatingSelect" class="form-control" required>
+                <option value="5" selected>★★★★★ (5 Stars — Masterwork Experience)</option>
+                <option value="4">★★★★☆ (4 Stars — Highly Recommended)</option>
+                <option value="3">★★★☆☆ (3 Stars — Satisfactory)</option>
+                <option value="2">★★☆☆☆ (2 Stars — Needs Refinement)</option>
+                <option value="1">★☆☆☆☆ (1 Star — Unsatisfactory)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="reviewComment">Your Testimonial / Reflection *</label>
+            <textarea id="reviewComment" class="form-control" rows="4" placeholder="Share your experience regarding our artwork quality, framing, curatorial advisory, or delivery." required minlength="10" maxlength="1000"></textarea>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 2rem;">
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Verified submissions undergo brief curatorial review.</span>
+            <button type="submit" class="btn-primary">Submit Testimonial</button>
           </div>
         </form>
       </div>

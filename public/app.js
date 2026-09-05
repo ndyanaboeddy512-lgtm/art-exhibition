@@ -229,6 +229,9 @@ const EddyStore = {
     // Load inquiries with smart local/server merge
     await this.fetchInquiries();
 
+    // Load visitor reviews & testimonials
+    await this.fetchReviews();
+
     this.updateWishlistBadge();
     this.initCurrencyButtons();
     this.updateUserNav();
@@ -240,77 +243,31 @@ const EddyStore = {
 
   async fetchInquiries() {
     let serverInquiries = [];
-    let localInquiries = [];
 
-    // 1. Read existing local storage inquiries
+    // Fetch authoritative inquiries strictly from the live database
     try {
-      const cached = localStorage.getItem('eddy_inquiries');
-      if (cached) {
-        localInquiries = JSON.parse(cached);
+      const headers = {};
+      const curatorToken = localStorage.getItem('eddy_curator_token');
+      if (curatorToken) {
+        headers['Authorization'] = `Bearer ${curatorToken}`;
       }
-    } catch (e) {
-      console.warn('Could not parse local inquiries', e);
-    }
-
-    // 2. Fetch server inquiries
-    try {
-      const res = await fetch('/api/inquiries');
+      const res = await fetch('/api/inquiries', { headers });
       if (res.ok) {
         serverInquiries = await res.json();
         this.isBackendConnected = true;
       }
     } catch (err) {
-      // Backend offline or running in static mode
+      console.warn('Notice fetching inquiries from server:', err.message);
     }
 
-    // 3. Merge without losing ANY local inquiries
-    const map = new Map();
-
-    // Add local inquiries first (user submissions on this device)
-    if (Array.isArray(localInquiries)) {
-      localInquiries.forEach(inq => {
-        if (inq && inq.id) map.set(inq.id, inq);
-      });
-    }
-
-    // Add or merge server inquiries
     if (Array.isArray(serverInquiries)) {
-      serverInquiries.forEach(inq => {
-        if (inq && inq.id) {
-          if (!map.has(inq.id)) {
-            map.set(inq.id, inq);
-          } else {
-            // Server status or curator note takes precedence if updated
-            map.set(inq.id, { ...map.get(inq.id), ...inq });
-          }
-        }
-      });
+      this.inquiries = serverInquiries;
+    } else {
+      this.inquiries = [];
     }
 
-    // If completely empty, load defaults
-    if (map.size === 0 && typeof DEFAULT_INQUIRIES !== 'undefined') {
-      DEFAULT_INQUIRIES.forEach(inq => map.set(inq.id, inq));
-    }
-
-    this.inquiries = Array.from(map.values());
     // Sort newest first
     this.inquiries.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-    this.saveInquiriesLocally();
-
-    // 4. Background push any local inquiries to server if not on server yet
-    if (this.isBackendConnected && localInquiries.length > 0) {
-      const serverIds = new Set((serverInquiries || []).map(i => i.id));
-      const unsynced = localInquiries.filter(i => !serverIds.has(i.id));
-      if (unsynced.length > 0) {
-        try {
-          fetch('/api/inquiries/sync', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(unsynced)
-          });
-        } catch (e) {}
-      }
-    }
 
     window.dispatchEvent(new CustomEvent('inquiriesUpdated', { detail: this.inquiries }));
     return this.inquiries;
@@ -351,45 +308,55 @@ const EddyStore = {
   },
 
   saveInquiriesLocally() {
-    localStorage.setItem('eddy_inquiries', JSON.stringify(this.inquiries));
+    // Deprecated: Inquiries are persistently stored on the server database, never in browser localStorage
   },
 
   async addInquiry(inquiryData) {
-    const newInquiry = {
-      id: 'inq-' + Math.floor(1000 + Math.random() * 9000),
-      ...inquiryData,
-      status: 'Pending',
-      opened: false,
-      isCustomerSubmission: true,
-      date: new Date().toISOString(),
-      curatorNotes: 'Inquiry received. Awaiting curator review.'
-    };
+    // Direct submission to secure server-side API
+    const res = await fetch('/api/inquiries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(inquiryData)
+    });
 
-    // 1. Immediately store in local store and localStorage (zero latency, zero risk of loss)
-    this.inquiries.unshift(newInquiry);
-    this.saveInquiriesLocally();
-    window.dispatchEvent(new CustomEvent('inquiriesUpdated', { detail: this.inquiries }));
-
-    // 2. Synchronize with backend API
-    try {
-      const res = await fetch('/api/inquiries', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newInquiry)
-      });
-      if (res.ok) {
-        const saved = await res.json();
-        if (saved && saved.id) {
-          const idx = this.inquiries.findIndex(i => i.id === newInquiry.id);
-          if (idx > -1) this.inquiries[idx] = saved;
-          this.saveInquiriesLocally();
-        }
-      }
-    } catch (e) {
-      console.warn('API sync notice, saved locally', e);
+    const result = await res.json();
+    if (!res.ok) {
+      throw new Error(result.message || result.error || 'Failed to submit inquiry to server.');
     }
 
-    return newInquiry;
+    const saved = result.inquiry || result;
+    this.inquiries.unshift(saved);
+    window.dispatchEvent(new CustomEvent('inquiriesUpdated', { detail: this.inquiries }));
+    return saved;
+  },
+
+  reviews: [],
+
+  async fetchReviews(artworkId = null) {
+    try {
+      const url = artworkId ? `/api/reviews?artworkId=${encodeURIComponent(artworkId)}` : '/api/reviews';
+      const res = await fetch(url);
+      if (res.ok) {
+        this.reviews = await res.json();
+      }
+    } catch (e) {
+      console.warn('Notice loading reviews from server', e);
+    }
+    window.dispatchEvent(new CustomEvent('reviewsLoaded', { detail: this.reviews }));
+    return this.reviews;
+  },
+
+  async addReview(reviewData) {
+    const res = await fetch('/api/reviews', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(reviewData)
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || data.error || 'Failed to submit review');
+    }
+    return data;
   },
 
   getArtworkById(id) {
@@ -466,7 +433,9 @@ window.openInquiryModal = function(artworkId) {
   document.getElementById('modalArtworkTitleInput').value = artwork.title;
   document.getElementById('modalArtworkPriceInput').value = artwork.price;
   document.getElementById('modalArtworkImageInput').value = artwork.image;
-  document.getElementById('modalArtworkArtistInput').value = artwork.artist;
+  // Set client time-gate timestamp
+  const inqTs = document.getElementById('inquiryTimestamp');
+  if (inqTs) inqTs.value = Date.now();
 
   document.getElementById('modalArtworkTitle').textContent = artwork.title;
   document.getElementById('modalArtworkArtist').textContent = artwork.artist + (artwork.year ? `, ${artwork.year}` : '');
@@ -618,7 +587,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         collectorEmail: sanitizeHTML(document.getElementById('inquiryEmail').value.trim()),
         collectorPhone: sanitizeHTML(document.getElementById('inquiryPhone').value.trim()),
         framePreference: document.getElementById('inquiryFraming').value,
-        notes: sanitizeHTML(document.getElementById('inquiryNotes').value.trim())
+        notes: sanitizeHTML(document.getElementById('inquiryNotes').value.trim()),
+        _ts: document.getElementById('inquiryTimestamp')?.value || Date.now(),
+        website_hp: document.getElementById('inquiryHoneypot')?.value || ''
       };
 
       try {
@@ -629,9 +600,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         modalBody.innerHTML = `
           <div style="text-align: center; padding: 2.5rem 1rem;">
             <div style="width: 60px; height: 60px; border-radius: 50%; background: #FAF8F5; border: 1px solid var(--accent-gold); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; color: var(--accent-gold); font-size: 1.5rem;">✓</div>
-            <h3 style="font-size: 2rem; margin-bottom: 0.75rem;">Inquiry Sent Successfully</h3>
-            <p style="font-size: 1rem; color: var(--text-secondary); max-width: 480px; margin: 0 auto 1.5rem;">
-              Thank you, <strong>${saved.collectorName}</strong>. We have received your inquiry for <em>"${saved.artworkTitle}"</em>. Our gallery team will email you shortly with pricing and delivery options.
+            <h3 style="font-size: 1.8rem; margin-bottom: 0.75rem;">Enquiry Received</h3>
+            <p style="font-size: 1.05rem; color: var(--text-secondary); max-width: 480px; margin: 0 auto 1.5rem; line-height: 1.6;">
+              Thank you for your enquiry. We are preparing a response with the available artwork details.
             </p>
             <div style="background: var(--bg-primary); padding: 1rem 1.5rem; border: 1px solid var(--border-subtle); display: inline-block; margin-bottom: 2rem; border-radius: 2px;">
               <span style="font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted);">Reference Number:</span>
@@ -639,12 +610,59 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
             <div>
               <a href="auth.html" class="btn-primary" style="margin-right: 1rem;">View in My Account</a>
-              <button onclick="window.closeInquiryModal(); window.location.reload();" class="btn-secondary">Return to Gallery</button>
+              <button onclick="window.closeInquiryModal(); window.location.reload();" class="btn-secondary">Return to Platform</button>
             </div>
           </div>
         `;
       } catch (err) {
-        alert('Could not submit inquiry. Please try again.');
+        alert(err.message || 'Could not submit inquiry. Please try again.');
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+      }
+    });
+  }
+
+  // Visitor Review Form Submission
+  const reviewForm = document.getElementById('visitorReviewForm');
+  if (reviewForm) {
+    reviewForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const submitBtn = reviewForm.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerHTML;
+      submitBtn.innerHTML = 'Submitting Testimonial...';
+      submitBtn.disabled = true;
+
+      const reviewData = {
+        authorName: sanitizeHTML(document.getElementById('reviewAuthorName').value.trim()),
+        authorEmail: sanitizeHTML(document.getElementById('reviewAuthorEmail').value.trim()),
+        authorLocation: sanitizeHTML(document.getElementById('reviewAuthorLocation').value.trim()),
+        rating: parseInt(document.getElementById('reviewRatingSelect').value, 10) || 5,
+        comment: sanitizeHTML(document.getElementById('reviewComment').value.trim()),
+        artworkId: document.getElementById('reviewArtworkId')?.value || null,
+        _ts: document.getElementById('reviewTimestamp')?.value || Date.now(),
+        website_hp: document.getElementById('reviewHoneypot')?.value || ''
+      };
+
+      try {
+        await EddyStore.addReview(reviewData);
+
+        const modalBody = document.querySelector('#reviewModal .modal-body');
+        if (modalBody) {
+          modalBody.innerHTML = `
+            <div style="text-align: center; padding: 2.5rem 1rem;">
+              <div style="width: 60px; height: 60px; border-radius: 50%; background: #FAF8F5; border: 1px solid var(--accent-gold); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; color: var(--accent-gold); font-size: 1.5rem;">★</div>
+              <h3 style="font-size: 1.8rem; margin-bottom: 0.75rem;">Testimonial Received</h3>
+              <p style="font-size: 0.95rem; color: var(--text-secondary); max-width: 440px; margin: 0 auto 1.5rem; line-height: 1.6;">
+                Thank you, <strong>${reviewData.authorName}</strong>. Your testimonial has been submitted to the curatorial directorate and will appear in our public accolades following curatorial review.
+              </p>
+              <button onclick="window.closeReviewModal(); window.location.reload();" class="btn-primary">
+                Return to Gallery
+              </button>
+            </div>
+          `;
+        }
+      } catch (err) {
+        alert(err.message || 'Could not submit testimonial. Please try again.');
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
       }
@@ -711,4 +729,91 @@ window.togglePasswordVisibility = function(inputId, btnEl) {
     if (btnEl) btnEl.innerHTML = '👁 Show';
   }
 };
+
+// Global Visitor Review Modal Handlers
+window.openReviewModal = function(artworkId = null, artworkTitle = null) {
+  const modal = document.getElementById('reviewModal');
+  if (!modal) return;
+
+  const inArtworkId = document.getElementById('reviewArtworkId');
+  if (inArtworkId) inArtworkId.value = artworkId || '';
+
+  const inArtworkTitle = document.getElementById('reviewArtworkTitle');
+  if (inArtworkTitle) inArtworkTitle.value = artworkTitle || '';
+
+  const pieceNotice = document.getElementById('reviewPieceNotice');
+  if (pieceNotice) {
+    if (artworkTitle) {
+      pieceNotice.textContent = `Reviewing: "${artworkTitle}"`;
+      pieceNotice.style.display = 'block';
+    } else {
+      pieceNotice.style.display = 'none';
+    }
+  }
+
+  // Set client time-gate timestamp
+  const tsInput = document.getElementById('reviewTimestamp');
+  if (tsInput) tsInput.value = Date.now();
+
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+};
+
+window.closeReviewModal = function() {
+  const modal = document.getElementById('reviewModal');
+  if (modal) {
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+};
+
+// Render Public Approved Testimonials
+window.renderTestimonials = function(containerId = 'testimonialsGrid') {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const reviews = EddyStore.reviews || [];
+  if (reviews.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
+        <p style="font-family: var(--font-serif); font-size: 1.25rem; font-style: italic; margin-bottom: 1rem;">
+          "Every genuine art collection begins with a shared appreciation of form, light, and narrative."
+        </p>
+        <button onclick="window.openReviewModal()" class="btn-secondary" style="font-size: 0.75rem; padding: 8px 18px;">
+          Share Your Collector Testimonial
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = reviews.map(r => {
+    const starCount = Math.max(1, Math.min(5, parseInt(r.rating, 10) || 5));
+    const stars = '★'.repeat(starCount) + '☆'.repeat(5 - starCount);
+    return `
+      <div class="testimonial-card">
+        <div>
+          <div class="testimonial-stars" aria-label="${starCount} out of 5 stars">${stars}</div>
+          <div class="testimonial-quote">"${r.comment}"</div>
+        </div>
+        <div class="testimonial-meta">
+          <div>
+            <div class="testimonial-author-name">${r.authorName}</div>
+            <div class="testimonial-author-location">${r.authorLocation || 'Collector'}</div>
+            ${r.artworkTitle ? `<div class="testimonial-artwork-tag">Acquisition: ${r.artworkTitle}</div>` : ''}
+          </div>
+          <span style="font-size: 0.7rem; color: var(--accent-gold); letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600;">Verified Collector</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+};
+
+// Auto-render testimonials on page load or reviews loaded event
+window.addEventListener('reviewsLoaded', () => {
+  if (typeof window.renderTestimonials === 'function') {
+    window.renderTestimonials();
+  }
+});
+
 

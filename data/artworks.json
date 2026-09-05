@@ -18,7 +18,27 @@
     "curatorialStatement": "A clean, modern sculpture handcrafted from natural wood, highlighting authentic grain and organic balance.",
     "featured": false,
     "image": "images/artwork-1788371635007-145.jpg",
-    "highResZoom": "images/artwork-1788371635007-145.jpg"
+    "highResZoom": "images/artwork-1788371635007-145.jpg",
+    "description": "A clean, modern sculpture handcrafted from natural wood, highlighting authentic grain and organic balance.",
+    "shippingDetails": "Museum-grade bespoke wooden crate with transit insurance and white-glove courier delivery worldwide.",
+    "images": [
+      "images/artwork-1788371635007-145.jpg",
+      "images/artwork-1788371635007-145.jpg"
+    ],
+    "faq": [
+      {
+        "q": "Is a Certificate of Authenticity included?",
+        "a": "Yes, each original artwork is accompanied by an official Certificate of Authenticity hand-signed by the artist and creative platform curator."
+      },
+      {
+        "q": "What are the shipping and delivery options?",
+        "a": "Every original piece is protected in custom wooden crating and dispatched with full transit insurance via private white-glove courier."
+      },
+      {
+        "q": "Can framing be customized?",
+        "a": "Yes, custom museum-grade framing options are available upon request."
+      }
+    ]
   },
   {
     "id": "art-01",
@@ -40,7 +60,27 @@
     "curatorialStatement": "A stunning original painting featuring deep shadows and warm earth tones. Created with hand-mixed natural pigments on premium canvas.",
     "featured": true,
     "image": "images/art-01.jpg",
-    "highResZoom": "images/art-01.jpg"
+    "highResZoom": "images/art-01.jpg",
+    "description": "A stunning original painting featuring deep shadows and warm earth tones. Created with hand-mixed natural pigments on premium canvas.",
+    "shippingDetails": "Museum-grade bespoke wooden crate with transit insurance and white-glove courier delivery worldwide.",
+    "images": [
+      "images/art-01.jpg",
+      "images/art-01.jpg"
+    ],
+    "faq": [
+      {
+        "q": "Is a Certificate of Authenticity included?",
+        "a": "Yes, each original artwork is accompanied by an official Certificate of Authenticity hand-signed by the artist and creative platform curator."
+      },
+      {
+        "q": "What are the shipping and delivery options?",
+        "a": "Every original piece is protected in custom wooden crating and dispatched with full transit insurance via private white-glove courier."
+      },
+      {
+        "q": "Can framing be customized?",
+        "a": "Yes, custom museum-grade framing options are available upon request."
+      }
+    ]
   },
   {
     "id": "art-02",
@@ -61,7 +101,27 @@
     "curatorialStatement": "A timeless bronze sculpture with smooth curves and tactile texture, resting securely on an elegant polished marble base.",
     "featured": false,
     "image": "images/art-02.jpg",
-    "highResZoom": "images/art-02.jpg"
+    "highResZoom": "images/art-02.jpg",
+    "description": "A timeless bronze sculpture with smooth curves and tactile texture, resting securely on an elegant polished marble base.",
+    "shippingDetails": "Museum-grade bespoke wooden crate with transit insurance and white-glove courier delivery worldwide.",
+    "images": [
+      "images/art-02.jpg",
+      "images/art-02.jpg"
+    ],
+    "faq": [
+      {
+        "q": "Is a Certificate of Authenticity included?",
+        "a": "Yes, each original artwork is accompanied by an official Certificate of Authenticity hand-signed by the artist and creative platform curator."
+      },
+      {
+        "q": "What are the shipping and delivery options?",
+        "a": "Every original piece is protected in custom wooden crating and dispatched with full transit insurance via private white-glove courier."
+      },
+      {
+        "q": "Can framing be customized?",
+        "a": "Yes, custom museum-grade framing options are available upon request."
+      }
+    ]
   },
   {
     "id": "art-03",
@@ -82,7 +142,27 @@
     "curatorialStatement": "A calm, elegant white textured wall artwork that catches ambient light throughout the day, creating gentle geometric shadows.",
     "featured": false,
     "image": "images/art-03.jpg",
-    "highResZoom": "images/art-03.jpg"
+    "highResZoom": "images/art-03.jpg",
+    "description": "A calm, elegant white textured wall artwork that catches ambient light throughout the day, creating gentle geometric shadows.",
+    "shippingDetails": "Museum-grade bespoke wooden crate with transit insurance and white-glove courier delivery worldwide.",
+    "images": [
+      "images/art-03.jpg",
+      "images/art-03.jpg"
+    ],
+    "faq": [
+      {
+        "q": "Is a Certificate of Authenticity included?",
+        "a": "Yes, each original artwork is accompanied by an official Certificate of Authenticity hand-signed by the artist and creative platform curator."
+      },
+      {
+        "q": "What are the shipping and delivery options?",
+        "a": "Every original piece is protected in custom wooden crating and dispatched with full transit insurance via private white-glove courier."
+      },
+      {
+        "q": "Can framing be customized?",
+        "a": "Yes, custom museum-grade framing options are available upon request."
+      }
+    ]
   },
   {
     "id": "art-04",
@@ -103,7 +183,27 @@
     "curatorialStatement": "A rich, grounded composition using warm terracotta, sand, and cream tones to bring warmth and comfort into living spaces.",
     "featured": false,
     "image": "images/art-04.jpg",
-    "highResZoom": "images/art-04.jpg"
+    "highResZoom": "images/art-04.jpg",
+    "description": "A rich, grounded composition using warm terracotta, sand, and cream tones to bring warmth and comfort into living spaces.",
+    "shippingDetails": "Museum-grade bespoke wooden crate with transit insurance and white-glove courier delivery worldwide.",
+    "images": [
+      "images/art-04.jpg",
+      "images/art-04.jpg"
+    ],
+    "faq": [
+      {
+        "q": "Is a Certificate of Authenticity included?",
+        "a": "Yes, each original artwork is accompanied by an official Certificate of Authenticity hand-signed by the artist and creative platform curator."
+      },
+      {
+        "q": "What are the shipping and delivery options?",
+        "a": "Every original piece is protected in custom wooden crating and dispatched with full transit insurance via private white-glove courier."
+      },
+      {
+        "q": "Can framing be customized?",
+        "a": "Yes, custom museum-grade framing options are available upon request."
+      }
+    ]
   },
   {
     "id": "art-05",
@@ -123,7 +223,27 @@
     "curatorialStatement": "A bold sculpture combining dark structural steel with hand-carved stone, inspired by modern architectural geometry.",
     "featured": false,
     "image": "images/art-05.jpg",
-    "highResZoom": "images/art-05.jpg"
+    "highResZoom": "images/art-05.jpg",
+    "description": "A bold sculpture combining dark structural steel with hand-carved stone, inspired by modern architectural geometry.",
+    "shippingDetails": "Museum-grade bespoke wooden crate with transit insurance and white-glove courier delivery worldwide.",
+    "images": [
+      "images/art-05.jpg",
+      "images/art-05.jpg"
+    ],
+    "faq": [
+      {
+        "q": "Is a Certificate of Authenticity included?",
+        "a": "Yes, each original artwork is accompanied by an official Certificate of Authenticity hand-signed by the artist and creative platform curator."
+      },
+      {
+        "q": "What are the shipping and delivery options?",
+        "a": "Every original piece is protected in custom wooden crating and dispatched with full transit insurance via private white-glove courier."
+      },
+      {
+        "q": "Can framing be customized?",
+        "a": "Yes, custom museum-grade framing options are available upon request."
+      }
+    ]
   },
   {
     "id": "art-06",
@@ -144,7 +264,27 @@
     "curatorialStatement": "A luminous abstract landscape capturing the warm glow of dusk. Gentle gold details reflect sunlight and ambient lighting.",
     "featured": false,
     "image": "images/art-06.jpg",
-    "highResZoom": "images/art-06.jpg"
+    "highResZoom": "images/art-06.jpg",
+    "description": "A luminous abstract landscape capturing the warm glow of dusk. Gentle gold details reflect sunlight and ambient lighting.",
+    "shippingDetails": "Museum-grade bespoke wooden crate with transit insurance and white-glove courier delivery worldwide.",
+    "images": [
+      "images/art-06.jpg",
+      "images/art-06.jpg"
+    ],
+    "faq": [
+      {
+        "q": "Is a Certificate of Authenticity included?",
+        "a": "Yes, each original artwork is accompanied by an official Certificate of Authenticity hand-signed by the artist and creative platform curator."
+      },
+      {
+        "q": "What are the shipping and delivery options?",
+        "a": "Every original piece is protected in custom wooden crating and dispatched with full transit insurance via private white-glove courier."
+      },
+      {
+        "q": "Can framing be customized?",
+        "a": "Yes, custom museum-grade framing options are available upon request."
+      }
+    ]
   },
   {
     "id": "art-07",
@@ -164,7 +304,27 @@
     "curatorialStatement": "Carved from a single block of authentic white marble, featuring smooth flowing lines and a satiny hand-finished touch.",
     "featured": false,
     "image": "images/art-07.jpg",
-    "highResZoom": "images/art-07.jpg"
+    "highResZoom": "images/art-07.jpg",
+    "description": "Carved from a single block of authentic white marble, featuring smooth flowing lines and a satiny hand-finished touch.",
+    "shippingDetails": "Museum-grade bespoke wooden crate with transit insurance and white-glove courier delivery worldwide.",
+    "images": [
+      "images/art-07.jpg",
+      "images/art-07.jpg"
+    ],
+    "faq": [
+      {
+        "q": "Is a Certificate of Authenticity included?",
+        "a": "Yes, each original artwork is accompanied by an official Certificate of Authenticity hand-signed by the artist and creative platform curator."
+      },
+      {
+        "q": "What are the shipping and delivery options?",
+        "a": "Every original piece is protected in custom wooden crating and dispatched with full transit insurance via private white-glove courier."
+      },
+      {
+        "q": "Can framing be customized?",
+        "a": "Yes, custom museum-grade framing options are available upon request."
+      }
+    ]
   },
   {
     "id": "art-08",
@@ -185,6 +345,26 @@
     "curatorialStatement": "An organic textile artwork made from pure natural materials, bringing calm serenity and rich texture into modern interiors.",
     "featured": false,
     "image": "images/art-08.jpg",
-    "highResZoom": "images/art-08.jpg"
+    "highResZoom": "images/art-08.jpg",
+    "description": "An organic textile artwork made from pure natural materials, bringing calm serenity and rich texture into modern interiors.",
+    "shippingDetails": "Museum-grade bespoke wooden crate with transit insurance and white-glove courier delivery worldwide.",
+    "images": [
+      "images/art-08.jpg",
+      "images/art-08.jpg"
+    ],
+    "faq": [
+      {
+        "q": "Is a Certificate of Authenticity included?",
+        "a": "Yes, each original artwork is accompanied by an official Certificate of Authenticity hand-signed by the artist and creative platform curator."
+      },
+      {
+        "q": "What are the shipping and delivery options?",
+        "a": "Every original piece is protected in custom wooden crating and dispatched with full transit insurance via private white-glove courier."
+      },
+      {
+        "q": "Can framing be customized?",
+        "a": "Yes, custom museum-grade framing options are available upon request."
+      }
+    ]
   }
 ]

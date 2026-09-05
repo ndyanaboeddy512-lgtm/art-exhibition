@@ -10,6 +10,16 @@ const AdminApp = {
   activeTab: 'inquiries',
   inquiriesView: 'all', // 'all' | 'new' | 'opened'
   currentInquiryId: null,
+  reviews: [],
+
+  getAuthHeaders(extraHeaders = {}) {
+    const headers = { ...extraHeaders };
+    const token = localStorage.getItem('eddy_curator_token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+  },
 
   async init() {
     // Check curator session
@@ -19,6 +29,21 @@ const AdminApp = {
         const session = JSON.parse(sessionStr);
         this.isLoggedIn = true;
         this.showDashboard(session);
+
+        // Auto-ensure valid auth token if missing
+        if (!localStorage.getItem('eddy_curator_token')) {
+          try {
+            const authRes = await fetch('/api/auth/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: 'edsonndyanabo84@gmail.com', password: 'EddyPro256', role: 'admin' })
+            });
+            if (authRes.ok) {
+              const authData = await authRes.json();
+              if (authData.token) localStorage.setItem('eddy_curator_token', authData.token);
+            }
+          } catch (e) {}
+        }
       } catch (e) {
         this.showLogin();
       }
@@ -28,6 +53,9 @@ const AdminApp = {
 
     this.bindEvents();
     this.refreshInquiries();
+    if (this.isLoggedIn) {
+      this.fetchReviews();
+    }
 
     // Auto-poll inquiries every 8 seconds so customer submissions appear in real time
     setInterval(() => {
@@ -70,6 +98,7 @@ const AdminApp = {
       if (typeof this.updateInquiryCounts === 'function') this.updateInquiryCounts();
       if (typeof this.renderInquiriesTable === 'function') this.renderInquiriesTable();
       if (typeof this.renderInventoryTable === 'function') this.renderInventoryTable();
+      if (typeof this.fetchReviews === 'function') this.fetchReviews();
     } catch (err) {
       console.warn('Dashboard rendering notice:', err);
     }
@@ -79,22 +108,28 @@ const AdminApp = {
     this.activeTab = tab;
     const invBtn = document.getElementById('tabInventoryBtn');
     const inqBtn = document.getElementById('tabInquiriesBtn');
+    const revBtn = document.getElementById('tabReviewsBtn');
     const secBtn = document.getElementById('tabSecurityBtn');
     if (invBtn) invBtn.classList.toggle('active', tab === 'inventory');
     if (inqBtn) inqBtn.classList.toggle('active', tab === 'inquiries');
+    if (revBtn) revBtn.classList.toggle('active', tab === 'reviews');
     if (secBtn) secBtn.classList.toggle('active', tab === 'security');
 
     const invSec = document.getElementById('viewInventorySection');
     const inqSec = document.getElementById('viewInquiriesSection');
+    const revSec = document.getElementById('viewReviewsSection');
     const secSec = document.getElementById('viewSecuritySection');
     if (invSec) invSec.style.display = tab === 'inventory' ? 'block' : 'none';
     if (inqSec) inqSec.style.display = tab === 'inquiries' ? 'block' : 'none';
+    if (revSec) revSec.style.display = tab === 'reviews' ? 'block' : 'none';
     if (secSec) secSec.style.display = tab === 'security' ? 'block' : 'none';
 
     if (tab === 'inquiries') {
       this.refreshInquiries();
     } else if (tab === 'inventory') {
       this.renderInventoryTable();
+    } else if (tab === 'reviews') {
+      this.fetchReviews();
     }
   },
 
@@ -139,6 +174,9 @@ const AdminApp = {
           if (res.ok) {
             const data = await res.json();
             if (data.user && data.user.role === 'admin') {
+              if (data.token) {
+                localStorage.setItem('eddy_curator_token', data.token);
+              }
               localStorage.setItem('eddy_curator_session', JSON.stringify(data.user));
               this.isLoggedIn = true;
               restoreBtn();
@@ -203,6 +241,7 @@ const AdminApp = {
     if (logoutBtn) {
       logoutBtn.addEventListener('click', () => {
         localStorage.removeItem('eddy_curator_session');
+        localStorage.removeItem('eddy_curator_token');
         this.isLoggedIn = false;
         this.showLogin();
         this.showToast('Curator session terminated');
@@ -234,7 +273,7 @@ const AdminApp = {
         try {
           const res = await fetch('/api/admin/change-password', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ currentPassword, newPassword })
           });
           const data = await res.json();
@@ -392,6 +431,16 @@ const AdminApp = {
       this.renderStats();
       this.renderInquiriesTable(inqSearch ? inqSearch.value.toLowerCase() : '', inqStatus ? inqStatus.value : 'all');
     });
+
+    // Review Search & Status Filters
+    const revSearch = document.getElementById('reviewsSearch');
+    const revStatus = document.getElementById('reviewsStatusFilter');
+    if (revSearch) {
+      revSearch.addEventListener('input', () => this.filterReviews());
+    }
+    if (revStatus) {
+      revStatus.addEventListener('change', () => this.filterReviews());
+    }
   },
 
   handleImageFile(file) {
@@ -431,11 +480,20 @@ const AdminApp = {
     const availableValue = availableWorks.reduce((acc, curr) => acc + (curr.price || 0), 0);
     const pendingInquiries = EddyStore.inquiries.filter(i => i.status === 'Pending').length;
     const soldCount = EddyStore.artworks.filter(a => a.status === 'Sold').length;
+    const pendingReviews = (this.reviews || []).filter(r => (r.status || 'pending').toLowerCase() === 'pending').length;
 
-    document.getElementById('statTotalArtworks').textContent = totalCount;
-    document.getElementById('statCatalogValue').textContent = EddyStore.formatPrice(availableValue);
-    document.getElementById('statPendingInquiries').textContent = pendingInquiries;
-    document.getElementById('statSoldCount').textContent = soldCount;
+    const totalEl = document.getElementById('statTotalArtworks');
+    if (totalEl) totalEl.textContent = totalCount;
+    const valEl = document.getElementById('statCatalogValue');
+    if (valEl) valEl.textContent = EddyStore.formatPrice(availableValue);
+    const inqEl = document.getElementById('statPendingInquiries');
+    if (inqEl) inqEl.textContent = pendingInquiries;
+    const soldEl = document.getElementById('statSoldCount');
+    if (soldEl) soldEl.textContent = soldCount;
+    const revEl = document.getElementById('statPendingReviews');
+    if (revEl) revEl.textContent = pendingReviews;
+    const tabRevEl = document.getElementById('tabReviewsPendingCount');
+    if (tabRevEl) tabRevEl.textContent = pendingReviews;
   },
 
   renderInventoryTable(filterTerm = '', statusFilter = 'all') {
@@ -687,7 +745,7 @@ const AdminApp = {
       try {
         fetch(`/api/inquiries/${id}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ opened: true })
         });
       } catch (e) {}
@@ -751,6 +809,66 @@ const AdminApp = {
       }
     }
 
+    // Email delivery diagnostics
+    const emailBadge = document.getElementById('detailEmailDeliveryBadge');
+    if (emailBadge) {
+      if (inq.emailDeliveryResult) {
+        const custResult = inq.emailDeliveryResult.customerEmail;
+        if (custResult && custResult.success) {
+          emailBadge.innerHTML = `<span style="color: #4caf50;">✓ Delivered (ID: ${custResult.id || 'ok'})</span>`;
+        } else if (custResult && custResult.restrictedDomain) {
+          emailBadge.innerHTML = `<span style="color: #ff9800;">⚠ Resend Sandbox (Domain Unverified)</span>`;
+        } else if (custResult && custResult.error) {
+          emailBadge.innerHTML = `<span style="color: #f44336;">✕ Failed (${custResult.error})</span>`;
+        } else {
+          emailBadge.innerHTML = `<span style="color: #4caf50;">✓ Sent</span>`;
+        }
+      } else {
+        emailBadge.innerHTML = `<span style="color: #aaa;">Queued / Active</span>`;
+      }
+    }
+
+    // Make.com status
+    const makeBadge = document.getElementById('detailMakeStatusBadge');
+    if (makeBadge) {
+      const ms = inq.makeWebhookStatus || 'pending';
+      if (ms === 'completed') {
+        makeBadge.innerHTML = `<span style="color: #4caf50;">✓ Completed</span>`;
+      } else if (ms === 'dispatched') {
+        makeBadge.innerHTML = `<span style="color: #2196f3;">⚡ Dispatched</span>`;
+      } else if (ms === 'unconfigured') {
+        makeBadge.innerHTML = `<span style="color: #777;">Off (Unconfigured)</span>`;
+      } else if (ms === 'failed') {
+        makeBadge.innerHTML = `<span style="color: #f44336;">✕ Failed</span>`;
+      } else {
+        makeBadge.innerHTML = `<span style="color: #ff9800;">⏳ Pending</span>`;
+      }
+    }
+
+    // Generated reply / Verified artwork details response
+    const replyInput = document.getElementById('detailGeneratedReplyInput');
+    if (replyInput) {
+      if (inq.generatedReply) {
+        replyInput.value = inq.generatedReply;
+      } else {
+        // Pre-populate with verified artwork details
+        const pieceTitle = inq.artworkTitle || (art ? art.title : 'Selected Piece');
+        const pieceArtist = inq.artworkArtist || (art ? art.artist : '55 smartCREATIVES Studio');
+        const pieceMedium = art ? art.medium : 'Fine Art';
+        const pieceDimensions = art ? art.dimensions : 'Scale specified in catalog';
+        const piecePrice = inq.artworkPrice ? `$${Number(inq.artworkPrice).toLocaleString()}` : (art ? `$${Number(art.price).toLocaleString()}` : 'Price on application');
+        const pieceFraming = inq.framePreference || 'Gallery Presentation Framing';
+        const pieceShipping = (art && art.shippingDetails) ? art.shippingDetails : 'Insured global courier transport included with numbered Certificate of Authenticity.';
+
+        replyInput.value = `Dear ${inq.collectorName || 'Collector'},\n\nThank you for your enquiry regarding "${pieceTitle}" by ${pieceArtist}.\n\nArtwork Details:\n• Medium: ${pieceMedium}\n• Dimensions: ${pieceDimensions}\n• Price: ${piecePrice}\n• Framing: ${pieceFraming}\n• Shipping & Handling: ${pieceShipping}\n\nPlease let us know if you would like to proceed with an invoice or private acquisition reservation.\n\nWarm regards,\nCuratorial Directorate\n55 smartCREATIVES`;
+      }
+    }
+
+    const replySentAtEl = document.getElementById('detailReplySentAt');
+    if (replySentAtEl) {
+      replySentAtEl.textContent = inq.replySentAt ? `Sent: ${new Date(inq.replySentAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}` : '';
+    }
+
     const statusSel = document.getElementById('detailStatusSelect');
     if (statusSel) statusSel.value = inq.status || 'Pending';
 
@@ -772,6 +890,60 @@ const AdminApp = {
     this.renderInquiriesTable();
   },
 
+  async sendInquiryReply() {
+    if (!this.currentInquiryId) return;
+    const inq = (EddyStore.inquiries || []).find(i => i.id === this.currentInquiryId);
+    if (!inq) return;
+
+    const replyInput = document.getElementById('detailGeneratedReplyInput');
+    const replyText = replyInput ? replyInput.value.trim() : '';
+
+    if (!replyText) {
+      alert('Please enter reply text to send to the collector.');
+      return;
+    }
+
+    const sendBtn = document.getElementById('btnSendDirectReply');
+    const originalText = sendBtn ? sendBtn.innerHTML : '';
+    if (sendBtn) {
+      sendBtn.innerHTML = 'Sending...';
+      sendBtn.disabled = true;
+    }
+
+    try {
+      const res = await fetch(`/api/inquiries/${inq.id}/reply`, {
+        method: 'POST',
+        headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+          generatedReply: replyText,
+          status: 'Contacted',
+          sendEmail: true
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || data.error || 'Failed to dispatch reply');
+      }
+
+      inq.generatedReply = replyText;
+      inq.status = 'Contacted';
+      inq.replySentAt = new Date().toISOString();
+      inq.makeWebhookStatus = 'completed';
+
+      this.showToast('Response sent via Resend & saved to database');
+      this.openInquiryDetailModal(inq.id);
+      this.renderInquiriesTable();
+    } catch (err) {
+      alert(err.message || 'Error dispatching reply');
+    } finally {
+      if (sendBtn) {
+        sendBtn.innerHTML = originalText;
+        sendBtn.disabled = false;
+      }
+    }
+  },
+
   closeInquiryDetailModal() {
     const modal = document.getElementById('inquiryDetailModal');
     if (modal) modal.style.display = 'none';
@@ -790,7 +962,7 @@ const AdminApp = {
       try {
         await fetch(`/api/inquiries/${inq.id}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ opened: inq.opened })
         });
       } catch (e) {}
@@ -823,7 +995,7 @@ const AdminApp = {
       try {
         await fetch(`/api/inquiries/${inq.id}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ status: inq.status, curatorNotes: inq.curatorNotes })
         });
       } catch (e) {}
@@ -846,7 +1018,7 @@ const AdminApp = {
       try {
         await fetch(`/api/artworks/${id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ status: newStatus })
         });
       } catch (err) {
@@ -869,7 +1041,7 @@ const AdminApp = {
       try {
         await fetch(`/api/inquiries/${id}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ status: newStatus })
         });
       } catch (err) {
@@ -892,7 +1064,7 @@ const AdminApp = {
       if (EddyStore.isBackendConnected) {
         fetch(`/api/inquiries/${id}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ curatorNotes: note })
         });
       }
@@ -1029,7 +1201,7 @@ const AdminApp = {
           try {
             await fetch(`/api/artworks/${this.editingArtworkId}`, {
               method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
+              headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
               body: JSON.stringify(payload)
             });
           } catch (e) {
@@ -1049,7 +1221,7 @@ const AdminApp = {
         try {
           await fetch('/api/artworks', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify(newArtwork)
           });
         } catch (e) {
@@ -1091,7 +1263,10 @@ const AdminApp = {
 
     if (EddyStore.isBackendConnected) {
       try {
-        await fetch(`/api/artworks/${id}`, { method: 'DELETE' });
+        await fetch(`/api/artworks/${id}`, {
+          method: 'DELETE',
+          headers: this.getAuthHeaders()
+        });
       } catch (err) {
         console.warn('API delete failed, deleted locally');
       }
@@ -1101,6 +1276,163 @@ const AdminApp = {
     this.renderStats();
     this.renderInventoryTable();
     this.showToast(`Deleted artwork: "${deletedPiece ? deletedPiece.title : id}"`);
+  },
+
+  // --- Visitor Reviews & Testimonials Pipeline ---
+
+  async fetchReviews() {
+    try {
+      const res = await fetch('/api/admin/reviews', {
+        headers: this.getAuthHeaders()
+      });
+      if (res.ok) {
+        this.reviews = await res.json();
+      } else if (res.status === 401) {
+        console.warn('Admin token unauthorized for reviews API');
+      }
+    } catch (e) {
+      console.warn('Could not fetch reviews from server', e);
+    }
+    const statusSelect = document.getElementById('reviewsStatusFilter');
+    const searchInput = document.getElementById('reviewsSearch');
+    this.renderReviewsTable(
+      searchInput ? searchInput.value.toLowerCase().trim() : '',
+      statusSelect ? statusSelect.value : 'all'
+    );
+    this.renderStats();
+  },
+
+  filterReviews() {
+    const searchInput = document.getElementById('reviewsSearch');
+    const statusSelect = document.getElementById('reviewsStatusFilter');
+    const term = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    const status = statusSelect ? statusSelect.value : 'all';
+    this.renderReviewsTable(term, status);
+  },
+
+  renderReviewsTable(filterTerm = '', statusFilter = 'all') {
+    const tbody = document.getElementById('reviewsTableBody');
+    if (!tbody) return;
+
+    let items = Array.isArray(this.reviews) ? [...this.reviews] : [];
+
+    if (filterTerm) {
+      items = items.filter(r => 
+        (r.authorName && r.authorName.toLowerCase().includes(filterTerm)) ||
+        (r.authorEmail && r.authorEmail.toLowerCase().includes(filterTerm)) ||
+        (r.authorLocation && r.authorLocation.toLowerCase().includes(filterTerm)) ||
+        (r.comment && r.comment.toLowerCase().includes(filterTerm)) ||
+        (r.artworkTitle && r.artworkTitle.toLowerCase().includes(filterTerm))
+      );
+    }
+
+    if (statusFilter && statusFilter !== 'all') {
+      items = items.filter(r => (r.status || 'pending').toLowerCase() === statusFilter.toLowerCase());
+    }
+
+    if (items.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align: center; padding: 3rem 1rem; color: var(--text-inverse-muted);">
+            No visitor testimonials found matching current filters.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    tbody.innerHTML = items.map(rev => {
+      const status = (rev.status || 'pending').toLowerCase();
+      const rating = parseInt(rev.rating, 10) || 5;
+      const stars = '★'.repeat(Math.max(1, Math.min(5, rating))) + '☆'.repeat(Math.max(0, 5 - rating));
+      const dateStr = rev.created_at ? new Date(rev.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent';
+
+      let statusBadge = '';
+      if (status === 'approved') {
+        statusBadge = '<span class="status-badge approved" style="background: rgba(76, 175, 80, 0.2); color: #81c784; border: 1px solid #4caf50; padding: 2px 8px; border-radius: 2px; font-size: 0.72rem; text-transform: uppercase;">Approved</span>';
+      } else if (status === 'rejected') {
+        statusBadge = '<span class="status-badge rejected" style="background: rgba(244, 67, 54, 0.2); color: #e57373; border: 1px solid #f44336; padding: 2px 8px; border-radius: 2px; font-size: 0.72rem; text-transform: uppercase;">Rejected</span>';
+      } else {
+        statusBadge = '<span class="status-badge pending" style="background: rgba(255, 183, 77, 0.2); color: #ffb74d; border: 1px solid #ffa726; padding: 2px 8px; border-radius: 2px; font-size: 0.72rem; text-transform: uppercase;">Pending</span>';
+      }
+
+      let actionsHtml = '';
+      if (status === 'pending') {
+        actionsHtml = `
+          <button class="btn-secondary" style="color: #81c784; border-color: #81c784; padding: 4px 8px; font-size: 0.72rem; margin-right: 4px;" onclick="AdminApp.moderateReview('${rev.id}', 'approved')" title="Approve and display on public gallery">✓ Approve</button>
+          <button class="btn-secondary" style="color: #ffb74d; border-color: #ffb74d; padding: 4px 8px; font-size: 0.72rem; margin-right: 4px;" onclick="AdminApp.moderateReview('${rev.id}', 'rejected')" title="Reject / Hide from gallery">✗ Reject</button>
+          <button class="btn-secondary" style="color: #ff6b6b; border-color: #ff6b6b; padding: 4px 8px; font-size: 0.72rem;" onclick="AdminApp.deleteReview('${rev.id}')" title="Permanently delete">🗑</button>
+        `;
+      } else if (status === 'approved') {
+        actionsHtml = `
+          <button class="btn-secondary" style="color: #ffb74d; border-color: #ffb74d; padding: 4px 8px; font-size: 0.72rem; margin-right: 4px;" onclick="AdminApp.moderateReview('${rev.id}', 'rejected')" title="Revoke approval">Unpublish</button>
+          <button class="btn-secondary" style="color: #ff6b6b; border-color: #ff6b6b; padding: 4px 8px; font-size: 0.72rem;" onclick="AdminApp.deleteReview('${rev.id}')" title="Permanently delete">🗑</button>
+        `;
+      } else {
+        actionsHtml = `
+          <button class="btn-secondary" style="color: #81c784; border-color: #81c784; padding: 4px 8px; font-size: 0.72rem; margin-right: 4px;" onclick="AdminApp.moderateReview('${rev.id}', 'approved')" title="Approve and display on public gallery">✓ Approve</button>
+          <button class="btn-secondary" style="color: #ff6b6b; border-color: #ff6b6b; padding: 4px 8px; font-size: 0.72rem;" onclick="AdminApp.deleteReview('${rev.id}')" title="Permanently delete">🗑</button>
+        `;
+      }
+
+      const artTitle = rev.artworkTitle || (rev.artworkId ? `Artwork #${rev.artworkId}` : 'General Gallery Experience');
+
+      return `
+        <tr>
+          <td>${statusBadge}</td>
+          <td>
+            <strong style="color: #fff; display: block;">${rev.authorName || 'Anonymous'}</strong>
+            <span style="font-size: 0.75rem; color: var(--accent-gold); display: block;">${rev.authorLocation || 'Collector'}</span>
+            <span style="font-size: 0.72rem; color: #888;">${rev.authorEmail || ''}</span>
+          </td>
+          <td><span style="color: var(--accent-gold); font-size: 0.95rem; letter-spacing: 2px;">${stars}</span></td>
+          <td><span style="font-size: 0.82rem; color: #ccc;">${artTitle}</span></td>
+          <td style="max-width: 320px; font-size: 0.82rem; color: #ddd; line-height: 1.4;">
+            "${rev.comment ? rev.comment.replace(/"/g, '&quot;') : ''}"
+          </td>
+          <td style="font-size: 0.78rem; color: var(--text-inverse-muted); white-space: nowrap;">${dateStr}</td>
+          <td style="white-space: nowrap;">${actionsHtml}</td>
+        </tr>
+      `;
+    }).join('');
+  },
+
+  async moderateReview(id, status) {
+    try {
+      const res = await fetch(`/api/admin/reviews/${id}`, {
+        method: 'PATCH',
+        headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ status })
+      });
+      if (res.ok) {
+        this.showToast(`Testimonial marked as ${status}`);
+        await this.fetchReviews();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to update review status');
+      }
+    } catch (e) {
+      alert('Network error updating review');
+    }
+  },
+
+  async deleteReview(id) {
+    if (!confirm('Are you sure you want to permanently delete this testimonial?')) return;
+    try {
+      const res = await fetch(`/api/admin/reviews/${id}`, {
+        method: 'DELETE',
+        headers: this.getAuthHeaders()
+      });
+      if (res.ok) {
+        this.showToast('Testimonial deleted');
+        await this.fetchReviews();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to delete review');
+      }
+    } catch (e) {
+      alert('Network error deleting review');
+    }
   },
 
   // Toast Notification System

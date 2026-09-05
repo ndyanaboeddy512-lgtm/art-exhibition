@@ -27,7 +27,22 @@ if (fs.existsSync(envPath)) {
 const express = require('express');
 const cors = require('cors');
 const db = require('./db');
-const { sendInquiryNotifications, getSiteUrl, getAdminEmail } = require('./services/email');
+const { sendInquiryNotifications, sendCustomerReply, getSiteUrl, getAdminEmail } = require('./services/email');
+const {
+  sanitizeHtml,
+  sanitizeText,
+  isValidEmail,
+  isHoneypotTriggered,
+  isTimeGateFailed,
+  isDuplicateSubmission,
+  generateAdminToken,
+  verifyAdminToken,
+  authenticateAdmin,
+  inquiryRateLimiter,
+  reviewRateLimiter,
+  adminLoginRateLimiter
+} = require('./services/security');
+const { dispatchMakeInquiryWebhook } = require('./services/webhook');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -47,6 +62,7 @@ const ARTWORKS_FILE = path.join(DATA_DIR, 'artworks.json');
 const INQUIRIES_FILE = path.join(DATA_DIR, 'inquiries.json');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const ADMIN_FILE = path.join(DATA_DIR, 'admin.json');
+const REVIEWS_FILE = path.join(DATA_DIR, 'reviews.json');
 
 // Ensure data directory exists
 if (!fs.existsSync(DATA_DIR)) {
@@ -64,17 +80,17 @@ function readJSON(file, fallback = []) {
   try {
     // 1. Check temporary writable storage first (persists across requests in serverless)
     if (fs.existsSync(tmpFile)) {
-      const data = fs.readFileSync(tmpFile, 'utf-8');
+      const data = fs.readFileSync(tmpFile, 'utf-8').replace(/^\uFEFF/, '');
       return JSON.parse(data);
     }
     // 2. Check bundled project directory
     if (fs.existsSync(file)) {
-      const data = fs.readFileSync(file, 'utf-8');
+      const data = fs.readFileSync(file, 'utf-8').replace(/^\uFEFF/, '');
       return JSON.parse(data);
     }
     const altFile = path.join(process.cwd(), 'data', path.basename(file));
     if (fs.existsSync(altFile)) {
-      const data = fs.readFileSync(altFile, 'utf-8');
+      const data = fs.readFileSync(altFile, 'utf-8').replace(/^\uFEFF/, '');
       return JSON.parse(data);
     }
     return fallback;
@@ -220,8 +236,8 @@ app.get(['/api/artworks/:id', '/artworks/:id'], async (req, res) => {
   res.json(artwork);
 });
 
-// Upload image from device endpoint
-app.post(['/api/upload', '/upload'], (req, res) => {
+// Upload image from device endpoint (Admin protected)
+app.post(['/api/upload', '/upload'], authenticateAdmin, (req, res) => {
   const { image } = req.body;
   if (!image) {
     return res.status(400).json({ error: 'No image data provided' });
@@ -230,8 +246,8 @@ app.post(['/api/upload', '/upload'], (req, res) => {
   res.json({ success: true, path: savedPath });
 });
 
-// POST new artwork (Admin)
-app.post(['/api/artworks', '/artworks'], async (req, res) => {
+// POST new artwork (Admin protected)
+app.post(['/api/artworks', '/artworks'], authenticateAdmin, async (req, res) => {
   let imagePath = req.body.image || 'images/art-01.jpg';
   if (imagePath.startsWith('data:image/')) {
     imagePath = saveBase64Image(imagePath);
@@ -275,8 +291,8 @@ app.post(['/api/artworks', '/artworks'], async (req, res) => {
   res.status(201).json(savedArtwork);
 });
 
-// PUT update artwork (Admin)
-app.put(['/api/artworks/:id', '/artworks/:id'], async (req, res) => {
+// PUT update artwork (Admin protected)
+app.put(['/api/artworks/:id', '/artworks/:id'], authenticateAdmin, async (req, res) => {
   let updateData = { ...req.body };
   if (updateData.image && updateData.image.startsWith('data:image/')) {
     const savedPath = saveBase64Image(updateData.image);
@@ -313,8 +329,8 @@ app.put(['/api/artworks/:id', '/artworks/:id'], async (req, res) => {
   res.json(updatedArtwork);
 });
 
-// DELETE artwork (Admin)
-app.delete(['/api/artworks/:id', '/artworks/:id'], async (req, res) => {
+// DELETE artwork (Admin protected)
+app.delete(['/api/artworks/:id', '/artworks/:id'], authenticateAdmin, async (req, res) => {
   if (db.isAvailable) {
     try {
       await db.deleteArtwork(req.params.id);
@@ -335,8 +351,8 @@ app.delete(['/api/artworks/:id', '/artworks/:id'], async (req, res) => {
   res.json({ success: true, message: `Artwork ${req.params.id} deleted` });
 });
 
-// GET inquiries
-app.get(['/api/inquiries', '/inquiries'], async (req, res) => {
+// GET inquiries (Admin protected)
+app.get(['/api/inquiries', '/inquiries'], authenticateAdmin, async (req, res) => {
   if (db.isAvailable) {
     try {
       const dbInqs = await db.getInquiries();
@@ -349,26 +365,105 @@ app.get(['/api/inquiries', '/inquiries'], async (req, res) => {
   res.json(inquiries);
 });
 
-// POST new inquiry (Collector or Guest)
-app.post(['/api/inquiries', '/inquiries'], async (req, res) => {
-  const newId = req.body.id || ('inq-' + Math.floor(1000 + Math.random() * 9000));
+// POST new inquiry (Collector or Guest with Security Hardening & Catalog Verification)
+app.post(['/api/inquiries', '/inquiries'], inquiryRateLimiter, async (req, res) => {
+  // 1. Honeypot check
+  if (isHoneypotTriggered(req.body)) {
+    console.log('🛡️ [Security] Honeypot triggered in inquiry submission. Silently dropping bot payload.');
+    return res.status(200).json({ success: true, id: 'inq-' + Math.floor(1000 + Math.random() * 9000), status: 'Pending' });
+  }
+
+  // 2. Time-gate check (minimum 1.5s human typing time)
+  if (isTimeGateFailed(req.body._ts || req.body.clientTimestamp, 1.5)) {
+    console.log('🛡️ [Security] Time-gate failed (< 1.5s). Silently dropping automated bot submission.');
+    return res.status(200).json({ success: true, id: 'inq-' + Math.floor(1000 + Math.random() * 9000), status: 'Pending' });
+  }
+
+  // 3. Input validation & sanitization
+  const rawName = req.body.collectorName || '';
+  const rawEmail = (req.body.collectorEmail || '').trim();
+  const collectorName = sanitizeText(rawName, 80);
+
+  if (!collectorName || collectorName.length < 2) {
+    return res.status(400).json({ error: 'Validation Error', message: 'Please provide your full name (at least 2 characters).' });
+  }
+  if (!isValidEmail(rawEmail)) {
+    return res.status(400).json({ error: 'Validation Error', message: 'Please enter a valid email address.' });
+  }
+
+  const collectorEmail = rawEmail.toLowerCase();
+  const collectorPhone = sanitizeText(req.body.collectorPhone || '', 40);
+  const framePreference = sanitizeText(req.body.framePreference || 'Included Framing', 100);
+  const notes = sanitizeHtml(req.body.notes || '', 2000);
+  const rawArtworkId = sanitizeText(req.body.artworkId || '', 64);
+
+  // 4. Duplicate submission check (prevents double-clicks & replay loops within 60s)
+  const signatureKey = `${collectorEmail}:${rawArtworkId || 'general'}`;
+  if (isDuplicateSubmission(signatureKey, 60)) {
+    console.log(`🛡️ [Security] Duplicate inquiry suppressed for ${collectorEmail}`);
+    return res.status(200).json({
+      success: true,
+      id: 'inq-received',
+      status: 'Pending',
+      duplicate: true,
+      isDuplicate: true,
+      message: 'Your inquiry has already been received and is being processed by our curatorial directorate.'
+    });
+  }
+
+  // 5. Authoritative Artwork Catalog Verification (Never trust client price/title)
+  let verifiedArtworkId = null;
+  let verifiedTitle = 'General Acquisition Inquiry';
+  let verifiedArtist = '55 smartCREATIVES Studio';
+  let verifiedPrice = 0;
+  let verifiedImage = '';
+  let realArtwork = null;
+
+  if (rawArtworkId) {
+    if (db.isAvailable) {
+      try { realArtwork = await db.getArtworkById(rawArtworkId); } catch(e) {}
+    }
+    if (!realArtwork) {
+      const artworks = readJSON(ARTWORKS_FILE, []);
+      realArtwork = artworks.find(a => a.id === rawArtworkId);
+    }
+
+    if (realArtwork) {
+      verifiedArtworkId = realArtwork.id;
+      verifiedTitle = realArtwork.title;
+      verifiedArtist = realArtwork.artist || '55 smartCREATIVES Studio';
+      verifiedPrice = Number(realArtwork.price) || 0;
+      verifiedImage = realArtwork.image || '';
+    } else {
+      return res.status(400).json({
+        error: 'Invalid Artwork ID',
+        message: 'The requested artwork could not be found in the gallery catalog.'
+      });
+    }
+  }
+
+  const newId = req.body.id && req.body.id.startsWith('inq-') ? req.body.id : ('inq-' + Math.floor(1000 + Math.random() * 9000));
   const newInquiry = {
     id: newId,
-    artworkId: req.body.artworkId || '',
-    artworkTitle: req.body.artworkTitle || 'General Acquisition Inquiry',
-    artworkArtist: req.body.artworkArtist || '',
-    artworkPrice: parseFloat(req.body.artworkPrice) || 0,
-    artworkImage: req.body.artworkImage || '',
-    collectorName: req.body.collectorName || 'Anonymous Collector',
-    collectorEmail: req.body.collectorEmail || '',
-    collectorPhone: req.body.collectorPhone || '',
-    framePreference: req.body.framePreference || 'Included Framing',
-    notes: req.body.notes || '',
-    status: req.body.status || 'Pending',
-    opened: req.body.opened !== undefined ? Boolean(req.body.opened) : false,
+    artworkId: verifiedArtworkId,
+    artworkTitle: verifiedTitle,
+    artworkArtist: verifiedArtist,
+    artworkPrice: verifiedPrice,
+    artworkImage: verifiedImage,
+    collectorName,
+    collectorEmail,
+    collectorPhone,
+    framePreference,
+    notes,
+    status: 'Pending',
+    opened: false,
     isCustomerSubmission: true,
-    date: req.body.date || new Date().toISOString(),
-    curatorNotes: req.body.curatorNotes || 'Inquiry received. Awaiting curator assignment.'
+    date: new Date().toISOString(),
+    curatorNotes: 'Inquiry received. Awaiting curator assignment.',
+    generatedReply: null,
+    emailDeliveryResult: null,
+    replySentAt: null,
+    makeWebhookStatus: 'pending'
   };
 
   let savedInquiry = newInquiry;
@@ -383,13 +478,33 @@ app.post(['/api/inquiries', '/inquiries'], async (req, res) => {
     }
   }
 
-  // Automated transactional emails (Customer Confirmation & Curator Alert)
-  // Non-blocking & graceful: failure to send email will NEVER fail the inquiry submission
-  sendInquiryNotifications(savedInquiry).catch(err => {
+  // 6. Automated transactional emails (Customer Confirmation & Curator Alert)
+  try {
+    const emailRes = await sendInquiryNotifications(savedInquiry);
+    savedInquiry.emailDeliveryResult = emailRes;
+    if (db.isAvailable) {
+      try {
+        await db.updateInquiryDeliveryResult(savedInquiry.id, emailRes);
+      } catch (e) {
+        console.warn('Notice updating email delivery result in DB:', e.message);
+      }
+    }
+  } catch (err) {
     console.warn('Notice sending inquiry notification emails:', err.message);
-  });
+  }
 
-  // Also maintain JSON mirror for local offline development
+  // 7. Make.com Webhook Dispatch (Optional with complete artwork data)
+  try {
+    const webhookRes = await dispatchMakeInquiryWebhook(savedInquiry, realArtwork);
+    if (db.isAvailable && webhookRes) {
+      const status = webhookRes.configured ? (webhookRes.success ? 'dispatched' : 'failed') : 'unconfigured';
+      await db.updateInquiryMakeStatus(savedInquiry.id, status);
+    }
+  } catch (err) {
+    console.warn('Notice dispatching Make.com webhook:', err.message);
+  }
+
+  // Maintain JSON mirror for local offline development
   const inquiries = readJSON(INQUIRIES_FILE);
   const existingIdx = inquiries.findIndex(i => i.id === newId);
   if (existingIdx > -1) {
@@ -399,11 +514,11 @@ app.post(['/api/inquiries', '/inquiries'], async (req, res) => {
   }
   writeJSON(INQUIRIES_FILE, inquiries);
 
-  res.status(201).json(savedInquiry);
+  res.status(201).json({ success: true, inquiry: savedInquiry, ...savedInquiry });
 });
 
-// POST sync multiple inquiries from client
-app.post(['/api/inquiries/sync', '/inquiries/sync'], async (req, res) => {
+// POST sync multiple inquiries from client (Admin protected)
+app.post(['/api/inquiries/sync', '/inquiries/sync'], authenticateAdmin, async (req, res) => {
   const clientInquiries = Array.isArray(req.body) ? req.body : [];
 
   if (db.isAvailable) {
@@ -433,8 +548,8 @@ app.post(['/api/inquiries/sync', '/inquiries/sync'], async (req, res) => {
   res.json(merged);
 });
 
-// PATCH update inquiry status or notes or opened state (Admin)
-app.patch(['/api/inquiries/:id', '/inquiries/:id'], async (req, res) => {
+// PATCH update inquiry status or notes or opened state (Admin protected)
+app.patch(['/api/inquiries/:id', '/inquiries/:id'], authenticateAdmin, async (req, res) => {
   let updatedInquiry = null;
 
   if (db.isAvailable) {
@@ -451,6 +566,10 @@ app.patch(['/api/inquiries/:id', '/inquiries/:id'], async (req, res) => {
     if (req.body.status) inquiries[index].status = req.body.status;
     if (req.body.opened !== undefined) inquiries[index].opened = Boolean(req.body.opened);
     if (req.body.curatorNotes !== undefined) inquiries[index].curatorNotes = req.body.curatorNotes;
+    if (req.body.generatedReply !== undefined) inquiries[index].generatedReply = req.body.generatedReply;
+    if (req.body.emailDeliveryResult !== undefined) inquiries[index].emailDeliveryResult = req.body.emailDeliveryResult;
+    if (req.body.replySentAt !== undefined) inquiries[index].replySentAt = req.body.replySentAt;
+    if (req.body.makeWebhookStatus !== undefined) inquiries[index].makeWebhookStatus = req.body.makeWebhookStatus;
     writeJSON(INQUIRIES_FILE, inquiries);
     if (!updatedInquiry) updatedInquiry = inquiries[index];
   }
@@ -462,8 +581,143 @@ app.patch(['/api/inquiries/:id', '/inquiries/:id'], async (req, res) => {
   res.json(updatedInquiry);
 });
 
+// GET single inquiry by ID (Admin protected)
+app.get(['/api/inquiries/:id', '/inquiries/:id'], authenticateAdmin, async (req, res) => {
+  const { id } = req.params;
+  if (db.isAvailable) {
+    try {
+      const inq = await db.getInquiryById(id);
+      if (inq) return res.json(inq);
+    } catch (err) {
+      console.warn('MySQL getInquiryById notice:', err.message);
+    }
+  }
+  const inquiries = readJSON(INQUIRIES_FILE, []);
+  const inq = inquiries.find(i => i.id === id);
+  if (!inq) return res.status(404).json({ error: 'Inquiry not found' });
+  res.json(inq);
+});
+
+// Middleware: Authenticate Reply Sender (Make.com webhook secret OR Admin JWT)
+function authenticateReplySender(req, res, next) {
+  const webhookSecret = process.env.MAKE_WEBHOOK_SECRET;
+  const headerSecret = req.headers['x-make-secret'] || req.headers['x-webhook-secret'];
+
+  // Check 1: Webhook secret match
+  if (webhookSecret && headerSecret && headerSecret === webhookSecret) {
+    req.senderType = 'make_webhook';
+    return next();
+  }
+
+  // Check 2: Bearer token for admin
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    const decoded = verifyAdminToken(token);
+    if (decoded) {
+      req.admin = decoded;
+      req.senderType = 'admin';
+      return next();
+    }
+  }
+
+  // Check 3: If no webhook secret is configured and running in development
+  if (!webhookSecret && process.env.NODE_ENV !== 'production' && (!authHeader || authHeader === 'Bearer null')) {
+    req.senderType = 'dev_unauthenticated';
+    return next();
+  }
+
+  return res.status(401).json({
+    error: 'Unauthorized',
+    message: 'Authentication required. Provide valid x-make-secret header or admin Bearer token.'
+  });
+}
+
+// POST reply to inquiry (Make.com automation or Curator Admin)
+app.post(['/api/inquiries/:id/reply', '/inquiries/:id/reply'], authenticateReplySender, async (req, res) => {
+  const { id } = req.params;
+  const { generatedReply, status, subject, sendEmail, deliveryResult } = req.body;
+
+  if (!generatedReply || typeof generatedReply !== 'string' || generatedReply.trim().length === 0) {
+    return res.status(400).json({ error: 'Validation Error', message: 'A non-empty generatedReply text is required.' });
+  }
+
+  let inquiry = null;
+  if (db.isAvailable) {
+    try {
+      inquiry = await db.getInquiryById(id);
+    } catch (e) {
+      console.warn('MySQL getInquiryById error:', e.message);
+    }
+  }
+  if (!inquiry) {
+    const inquiries = readJSON(INQUIRIES_FILE, []);
+    inquiry = inquiries.find(i => i.id === id);
+  }
+
+  if (!inquiry) {
+    return res.status(404).json({ error: 'Inquiry not found', message: `No inquiry exists with ID: ${id}` });
+  }
+
+  let emailResult = deliveryResult || null;
+  // If sendEmail is explicitly true or not specified (and no deliveryResult was pre-supplied by Make.com)
+  if (sendEmail !== false && !deliveryResult && inquiry.collectorEmail) {
+    try {
+      emailResult = await sendCustomerReply({
+        to: inquiry.collectorEmail,
+        subject: subject || `Regarding your inquiry: ${inquiry.artworkTitle || '55 smartCREATIVES'}`,
+        text: generatedReply.trim(),
+        inquiryId: inquiry.id,
+        artworkTitle: inquiry.artworkTitle
+      });
+    } catch (mailErr) {
+      emailResult = { success: false, error: mailErr.message };
+      console.warn('Error sending customer reply via Resend:', mailErr.message);
+    }
+  }
+
+  const replyData = {
+    generatedReply: generatedReply.trim(),
+    status: status || 'Contacted',
+    replySentAt: new Date().toISOString(),
+    emailDeliveryResult: emailResult,
+    makeWebhookStatus: 'completed'
+  };
+
+  let updatedInquiry = null;
+  if (db.isAvailable) {
+    try {
+      updatedInquiry = await db.updateInquiryReply(id, replyData);
+    } catch (err) {
+      console.warn('MySQL updateInquiryReply notice:', err.message);
+    }
+  }
+
+  // Update JSON mirror
+  const inquiries = readJSON(INQUIRIES_FILE, []);
+  const idx = inquiries.findIndex(i => i.id === id);
+  if (idx > -1) {
+    inquiries[idx] = {
+      ...inquiries[idx],
+      generatedReply: replyData.generatedReply,
+      status: replyData.status,
+      replySentAt: replyData.replySentAt,
+      emailDeliveryResult: emailResult || inquiries[idx].emailDeliveryResult,
+      makeWebhookStatus: 'completed'
+    };
+    writeJSON(INQUIRIES_FILE, inquiries);
+    if (!updatedInquiry) updatedInquiry = inquiries[idx];
+  }
+
+  res.json({
+    success: true,
+    message: 'Inquiry reply recorded successfully',
+    inquiry: updatedInquiry || { id, ...replyData }
+  });
+});
+
 // Auth Routes (Curator Admin & Collector)
-app.post(['/api/auth/login', '/auth/login'], async (req, res) => {
+app.post(['/api/auth/login', '/auth/login'], adminLoginRateLimiter, async (req, res) => {
   const { email, password, role } = req.body;
   const normalizedEmail = (email || '').trim().toLowerCase();
 
@@ -504,8 +758,9 @@ app.post(['/api/auth/login', '/auth/login'], async (req, res) => {
     if (isPassMatch) {
       adminData.lastLogin = new Date().toISOString();
       writeJSON(ADMIN_FILE, adminData);
+      const token = generateAdminToken(adminData);
       return res.json({
-        token: 'token-curator-eddypro-' + Date.now(),
+        token,
         user: {
           name: adminData.name,
           email: adminData.email,
@@ -666,8 +921,8 @@ app.put(['/api/users/profile', '/users/profile'], async (req, res) => {
   });
 });
 
-// Admin change password
-app.post(['/api/admin/change-password', '/admin/change-password'], async (req, res) => {
+// Admin change password (Admin protected)
+app.post(['/api/admin/change-password', '/admin/change-password'], authenticateAdmin, async (req, res) => {
   const { currentPassword, newPassword } = req.body;
 
   let adminData = null;
@@ -700,8 +955,8 @@ app.post(['/api/admin/change-password', '/admin/change-password'], async (req, r
   res.json({ success: true, message: 'Administrator password updated successfully' });
 });
 
-// Admin profile info
-app.get(['/api/admin/profile', '/admin/profile'], async (req, res) => {
+// Admin profile info (Admin protected)
+app.get(['/api/admin/profile', '/admin/profile'], authenticateAdmin, async (req, res) => {
   let adminData = null;
   if (db.isAvailable) {
     try { adminData = await db.getAdmin(); } catch (e) {}
@@ -719,6 +974,213 @@ app.get(['/api/admin/profile', '/admin/profile'], async (req, res) => {
     role: adminData.role || 'admin',
     lastLogin: adminData.lastLogin
   });
+});
+
+// --- VISITOR REVIEWS & TESTIMONIALS API ---
+
+// GET public approved reviews only
+app.get(['/api/reviews', '/reviews'], async (req, res) => {
+  const artworkId = req.query.artworkId || req.query.artwork_id || null;
+  if (db.isAvailable) {
+    try {
+      const dbReviews = await db.getApprovedReviews(artworkId);
+      if (dbReviews) return res.json(dbReviews);
+    } catch (err) {
+      console.warn('MySQL getApprovedReviews notice, falling back:', err.message);
+    }
+  }
+
+  const reviews = readJSON(REVIEWS_FILE, []);
+  let approved = reviews.filter(r => r.status === 'approved');
+  if (artworkId) {
+    approved = approved.filter(r => !r.artworkId || r.artworkId === artworkId);
+  }
+  approved.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  res.json(approved);
+});
+
+// POST submit a new visitor review (Public with Rate Limiting & Anti-Spam)
+app.post(['/api/reviews', '/reviews'], reviewRateLimiter, async (req, res) => {
+  // 1. Honeypot check
+  if (isHoneypotTriggered(req.body)) {
+    console.log('🛡️ [Security] Honeypot triggered in review submission. Silently dropping bot payload.');
+    return res.status(201).json({
+      success: true,
+      message: 'Thank you for your testimonial. It has been received and will be displayed following curatorial review.'
+    });
+  }
+
+  // 2. Time-gate check (minimum 1.5s human time)
+  if (isTimeGateFailed(req.body._ts || req.body.clientTimestamp, 1.5)) {
+    console.log('🛡️ [Security] Time-gate failed in review (< 1.5s). Silently dropping bot payload.');
+    return res.status(201).json({
+      success: true,
+      message: 'Thank you for your testimonial. It has been received and will be displayed following curatorial review.'
+    });
+  }
+
+  // 3. Validation & sanitization
+  const rawName = req.body.authorName || req.body.name || '';
+  const rawEmail = (req.body.authorEmail || req.body.email || '').trim();
+  const authorName = sanitizeText(rawName, 60);
+
+  if (!authorName || authorName.length < 2) {
+    return res.status(400).json({ error: 'Validation Error', message: 'Please enter your name (2–60 characters).' });
+  }
+  if (!isValidEmail(rawEmail)) {
+    return res.status(400).json({ error: 'Validation Error', message: 'Please enter a valid email address.' });
+  }
+
+  const authorEmail = rawEmail.toLowerCase();
+  const authorLocation = sanitizeText(req.body.authorLocation || req.body.location || '', 100);
+  
+  // Rating must be an integer between 1 and 5
+  const ratingInt = parseInt(req.body.rating, 10);
+  if (isNaN(ratingInt) || ratingInt < 1 || ratingInt > 5) {
+    return res.status(400).json({ error: 'Validation Error', message: 'Rating must be an integer between 1 and 5 stars.' });
+  }
+
+  const rawComment = req.body.comment || req.body.review || '';
+  const comment = sanitizeHtml(rawComment, 1000);
+  if (!comment || comment.length < 10) {
+    return res.status(400).json({ error: 'Validation Error', message: 'Your review comment must be at least 10 characters.' });
+  }
+
+  const rawArtworkId = sanitizeText(req.body.artworkId || '', 64);
+  let verifiedArtworkTitle = null;
+  if (rawArtworkId) {
+    let realArtwork = null;
+    if (db.isAvailable) {
+      try { realArtwork = await db.getArtworkById(rawArtworkId); } catch(e) {}
+    }
+    if (!realArtwork) {
+      const artworks = readJSON(ARTWORKS_FILE, []);
+      realArtwork = artworks.find(a => a.id === rawArtworkId);
+    }
+    if (realArtwork) {
+      verifiedArtworkTitle = realArtwork.title;
+    }
+  }
+
+  const newId = 'rev-' + Math.floor(1000 + Math.random() * 9000);
+  const now = new Date().toISOString();
+  const newReview = {
+    id: newId,
+    artworkId: rawArtworkId || null,
+    artworkTitle: verifiedArtworkTitle || null,
+    authorName,
+    authorEmail,
+    authorLocation: authorLocation || 'Collector',
+    rating: ratingInt,
+    comment,
+    status: 'pending', // Unconditionally pending! Client can NEVER force approved
+    createdAt: now,
+    reviewedAt: null
+  };
+
+  let savedReview = newReview;
+  if (db.isAvailable) {
+    try {
+      const dbSaved = await db.createReview(newReview);
+      if (dbSaved) savedReview = dbSaved;
+      console.log(`✓ Review submitted: ${savedReview.id} from ${savedReview.authorName} (status: pending)`);
+    } catch (err) {
+      console.warn('MySQL createReview notice:', err.message);
+    }
+  }
+
+  // Update JSON mirror
+  const reviews = readJSON(REVIEWS_FILE, []);
+  reviews.unshift(savedReview);
+  writeJSON(REVIEWS_FILE, reviews);
+
+  res.status(201).json({
+    success: true,
+    message: 'Thank you for your testimonial. It has been received and will be displayed following curatorial review.',
+    review: {
+      id: savedReview.id,
+      authorName: savedReview.authorName,
+      authorLocation: savedReview.authorLocation,
+      rating: savedReview.rating,
+      comment: savedReview.comment,
+      status: 'pending'
+    }
+  });
+});
+
+// GET all reviews for curation/moderation (Admin protected)
+app.get(['/api/admin/reviews', '/admin/reviews'], authenticateAdmin, async (req, res) => {
+  const statusFilter = req.query.status || 'all';
+
+  if (db.isAvailable) {
+    try {
+      const dbReviews = await db.getAllReviews(statusFilter);
+      if (dbReviews) return res.json(dbReviews);
+    } catch (err) {
+      console.warn('MySQL getAllReviews notice, falling back:', err.message);
+    }
+  }
+
+  const reviews = readJSON(REVIEWS_FILE, []);
+  let filtered = reviews;
+  if (statusFilter && statusFilter !== 'all') {
+    filtered = reviews.filter(r => r.status === statusFilter);
+  }
+  filtered.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  res.json(filtered);
+});
+
+// PATCH moderate review: approve or reject (Admin protected)
+app.patch(['/api/admin/reviews/:id', '/admin/reviews/:id'], authenticateAdmin, async (req, res) => {
+  const targetStatus = req.body.status;
+  if (!['approved', 'rejected', 'pending'].includes(targetStatus)) {
+    return res.status(400).json({ error: 'Invalid status. Allowed values: approved, rejected, pending.' });
+  }
+
+  let updatedReview = null;
+  if (db.isAvailable) {
+    try {
+      updatedReview = await db.updateReviewStatus(req.params.id, targetStatus);
+    } catch (err) {
+      console.warn('MySQL updateReviewStatus notice:', err.message);
+    }
+  }
+
+  const reviews = readJSON(REVIEWS_FILE, []);
+  const index = reviews.findIndex(r => r.id === req.params.id);
+  if (index > -1) {
+    reviews[index].status = targetStatus;
+    reviews[index].reviewedAt = new Date().toISOString();
+    writeJSON(REVIEWS_FILE, reviews);
+    if (!updatedReview) updatedReview = reviews[index];
+  }
+
+  if (!updatedReview && index === -1) {
+    return res.status(404).json({ error: 'Review not found' });
+  }
+
+  res.json({ success: true, review: updatedReview });
+});
+
+// DELETE review (Admin protected)
+app.delete(['/api/admin/reviews/:id', '/admin/reviews/:id'], authenticateAdmin, async (req, res) => {
+  if (db.isAvailable) {
+    try {
+      await db.deleteReview(req.params.id);
+    } catch (err) {
+      console.warn('MySQL deleteReview notice:', err.message);
+    }
+  }
+
+  let reviews = readJSON(REVIEWS_FILE, []);
+  const initialLen = reviews.length;
+  reviews = reviews.filter(r => r.id !== req.params.id);
+  if (reviews.length === initialLen && !db.isAvailable) {
+    return res.status(404).json({ error: 'Review not found' });
+  }
+
+  writeJSON(REVIEWS_FILE, reviews);
+  res.json({ success: true, message: `Review ${req.params.id} deleted` });
 });
 
 // Start Server with graceful port fallback

@@ -11,12 +11,8 @@ let initPromise = null;
 function getPoolConfig() {
   const connectionUrl = process.env.DATABASE_URL || process.env.MYSQL_URL;
   if (connectionUrl) {
-    const isCloud = connectionUrl.includes('railway') ||
-                    connectionUrl.includes('tidbcloud') ||
-                    connectionUrl.includes('psdb.cloud') ||
-                    connectionUrl.includes('aivencloud') ||
-                    connectionUrl.includes('ssl') ||
-                    process.env.MYSQL_SSL === 'true';
+    const isLocal = connectionUrl.includes('127.0.0.1') || connectionUrl.includes('localhost');
+    const isCloud = !isLocal || connectionUrl.includes('ssl') || process.env.MYSQL_SSL === 'true';
 
     return {
       uri: connectionUrl,
@@ -120,6 +116,10 @@ async function createTables() {
       frame_options JSON NULL,
       provenance TEXT NULL,
       curatorial_statement TEXT NULL,
+      description TEXT NULL,
+      shipping_details TEXT NULL,
+      faq_info JSON NULL,
+      images JSON NULL,
       featured BOOLEAN NOT NULL DEFAULT FALSE,
       image VARCHAR(500) NOT NULL,
       high_res_zoom VARCHAR(500) NULL,
@@ -148,6 +148,10 @@ async function createTables() {
       is_customer_submission BOOLEAN NOT NULL DEFAULT TRUE,
       date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       curator_notes TEXT NULL,
+      generated_reply TEXT NULL,
+      email_delivery_result JSON NULL,
+      reply_sent_at TIMESTAMP NULL,
+      make_webhook_status VARCHAR(64) DEFAULT 'pending',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       INDEX idx_inq_status (status),
@@ -185,10 +189,50 @@ async function createTables() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `;
 
+  const reviewsTable = `
+    CREATE TABLE IF NOT EXISTS reviews (
+      id VARCHAR(64) PRIMARY KEY,
+      artwork_id VARCHAR(64) NULL,
+      artwork_title VARCHAR(255) NULL,
+      author_name VARCHAR(255) NOT NULL,
+      author_email VARCHAR(255) NOT NULL,
+      author_location VARCHAR(128) NULL,
+      rating INT NOT NULL DEFAULT 5,
+      comment TEXT NOT NULL,
+      status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      reviewed_at TIMESTAMP NULL,
+      INDEX idx_review_status (status),
+      INDEX idx_review_artwork (artwork_id),
+      INDEX idx_review_created (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `;
+
   await pool.query(artworksTable);
   await pool.query(inquiriesTable);
   await pool.query(usersTable);
   await pool.query(adminsTable);
+  await pool.query(reviewsTable);
+
+  // Auto-migrate existing production tables to guarantee new columns exist safely
+  const columnMigrations = [
+    "ALTER TABLE inquiries ADD COLUMN generated_reply TEXT NULL",
+    "ALTER TABLE inquiries ADD COLUMN email_delivery_result JSON NULL",
+    "ALTER TABLE inquiries ADD COLUMN reply_sent_at TIMESTAMP NULL",
+    "ALTER TABLE inquiries ADD COLUMN make_webhook_status VARCHAR(64) DEFAULT 'pending'",
+    "ALTER TABLE artworks ADD COLUMN description TEXT NULL",
+    "ALTER TABLE artworks ADD COLUMN shipping_details TEXT NULL",
+    "ALTER TABLE artworks ADD COLUMN faq_info JSON NULL",
+    "ALTER TABLE artworks ADD COLUMN images JSON NULL"
+  ];
+  for (const q of columnMigrations) {
+    try {
+      await pool.query(q);
+    } catch (e) {
+      // Column already exists or database dialect notice, safely ignore
+    }
+  }
+
   console.log('✓ MySQL tables verified / ready');
 }
 
@@ -201,24 +245,29 @@ async function seedIfEmpty() {
 
     // 1. Seed Artworks
     const [artworkCount] = await pool.query('SELECT COUNT(*) as count FROM artworks');
-    if (artworkCount[0].count === 0 && fs.existsSync(path.join(dataDir, 'artworks.json'))) {
+    if (fs.existsSync(path.join(dataDir, 'artworks.json'))) {
       const artworks = JSON.parse(fs.readFileSync(path.join(dataDir, 'artworks.json'), 'utf-8'));
       for (const a of artworks) {
         await pool.query(
-          `INSERT INTO artworks (id, title, artist, year, medium, dimensions, price, status, framing, frame_options, provenance, curatorial_statement, featured, image, high_res_zoom)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-           ON DUPLICATE KEY UPDATE title=VALUES(title)`,
+          `INSERT INTO artworks (id, title, artist, year, medium, dimensions, price, status, framing, frame_options, provenance, curatorial_statement, description, shipping_details, faq_info, images, featured, image, high_res_zoom)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE 
+             description = COALESCE(description, VALUES(description)),
+             shipping_details = COALESCE(shipping_details, VALUES(shipping_details)),
+             faq_info = COALESCE(faq_info, VALUES(faq_info)),
+             images = COALESCE(images, VALUES(images))`,
           [
             a.id, a.title, a.artist || '55 smartCREATIVES Studio',
             a.year || 2026, a.medium || 'Fine Art', a.dimensions || 'Custom Size',
             a.price || 0, a.status || 'Available', a.framing || 'Included Framing',
             JSON.stringify(a.frameOptions || []), a.provenance || '',
-            a.curatorialStatement || '', a.featured ? 1 : 0,
-            a.image, a.highResZoom || a.image
+            a.curatorialStatement || '', a.description || '', a.shippingDetails || '',
+            JSON.stringify(a.faq || []), JSON.stringify(a.images || [a.image]),
+            a.featured ? 1 : 0, a.image, a.highResZoom || a.image
           ]
         );
       }
-      console.log(`✓ Seeded ${artworks.length} artworks into MySQL`);
+      console.log(`✓ Seeded & enriched ${artworks.length} artworks in MySQL`);
     }
 
     // 2. Seed Inquiries
@@ -274,6 +323,28 @@ async function seedIfEmpty() {
       );
       console.log(`✓ Seeded admin curator account into MySQL`);
     }
+
+    // 5. Seed Reviews
+    const [reviewCount] = await pool.query('SELECT COUNT(*) as count FROM reviews');
+    if (reviewCount[0].count === 0 && fs.existsSync(path.join(dataDir, 'reviews.json'))) {
+      const rawReviews = fs.readFileSync(path.join(dataDir, 'reviews.json'), 'utf-8').replace(/^\uFEFF/, '');
+      const reviews = JSON.parse(rawReviews);
+      for (const r of reviews) {
+        await pool.query(
+          `INSERT INTO reviews (id, artwork_id, artwork_title, author_name, author_email, author_location, rating, comment, status, created_at, reviewed_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE status=VALUES(status)`,
+          [
+            r.id, r.artworkId || null, r.artworkTitle || null,
+            r.authorName, r.authorEmail, r.authorLocation || null,
+            r.rating || 5, r.comment, r.status || 'approved',
+            r.createdAt ? new Date(r.createdAt) : new Date(),
+            r.reviewedAt ? new Date(r.reviewedAt) : new Date()
+          ]
+        );
+      }
+      console.log(`✓ Seeded ${reviews.length} reviews into MySQL`);
+    }
   } catch (e) {
     console.warn('Notice during database initial seeding:', e.message);
   }
@@ -298,6 +369,10 @@ async function getArtworks() {
     frameOptions: typeof r.frame_options === 'string' ? JSON.parse(r.frame_options) : (r.frame_options || []),
     provenance: r.provenance,
     curatorialStatement: r.curatorial_statement,
+    description: r.description || '',
+    shippingDetails: r.shipping_details || '',
+    faq: typeof r.faq_info === 'string' ? JSON.parse(r.faq_info) : (r.faq_info || []),
+    images: typeof r.images === 'string' ? JSON.parse(r.images) : (r.images || (r.image ? [r.image] : [])),
     featured: Boolean(r.featured),
     image: r.image,
     highResZoom: r.high_res_zoom || r.image
@@ -323,6 +398,10 @@ async function getArtworkById(id) {
     frameOptions: typeof r.frame_options === 'string' ? JSON.parse(r.frame_options) : (r.frame_options || []),
     provenance: r.provenance,
     curatorialStatement: r.curatorial_statement,
+    description: r.description || '',
+    shippingDetails: r.shipping_details || '',
+    faq: typeof r.faq_info === 'string' ? JSON.parse(r.faq_info) : (r.faq_info || []),
+    images: typeof r.images === 'string' ? JSON.parse(r.images) : (r.images || (r.image ? [r.image] : [])),
     featured: Boolean(r.featured),
     image: r.image,
     highResZoom: r.high_res_zoom || r.image
@@ -336,14 +415,16 @@ async function createArtwork(artwork) {
     await p.query('UPDATE artworks SET featured = FALSE');
   }
   await p.query(
-    `INSERT INTO artworks (id, title, artist, year, medium, dimensions, price, status, framing, frame_options, provenance, curatorial_statement, featured, image, high_res_zoom)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO artworks (id, title, artist, year, medium, dimensions, price, status, framing, frame_options, provenance, curatorial_statement, description, shipping_details, faq_info, images, featured, image, high_res_zoom)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       artwork.id, artwork.title, artwork.artist,
       artwork.year, artwork.medium, artwork.dimensions,
       artwork.price, artwork.status || 'Available', artwork.framing,
       JSON.stringify(artwork.frameOptions || []), artwork.provenance,
-      artwork.curatorialStatement, artwork.featured ? 1 : 0,
+      artwork.curatorialStatement, artwork.description || '', artwork.shippingDetails || '',
+      JSON.stringify(artwork.faq || []), JSON.stringify(artwork.images || (artwork.image ? [artwork.image] : [])),
+      artwork.featured ? 1 : 0,
       artwork.image, artwork.highResZoom || artwork.image
     ]
   );
@@ -366,12 +447,15 @@ async function updateArtwork(id, updates) {
     `UPDATE artworks SET 
        title = ?, artist = ?, year = ?, medium = ?, dimensions = ?, price = ?,
        status = ?, framing = ?, frame_options = ?, provenance = ?, curatorial_statement = ?,
+       description = ?, shipping_details = ?, faq_info = ?, images = ?,
        featured = ?, image = ?, high_res_zoom = ?
      WHERE id = ?`,
     [
       merged.title, merged.artist, merged.year, merged.medium, merged.dimensions,
       merged.price, merged.status, merged.framing, JSON.stringify(merged.frameOptions || []),
-      merged.provenance, merged.curatorialStatement, merged.featured ? 1 : 0,
+      merged.provenance, merged.curatorialStatement, merged.description || '',
+      merged.shippingDetails || '', JSON.stringify(merged.faq || []), JSON.stringify(merged.images || (merged.image ? [merged.image] : [])),
+      merged.featured ? 1 : 0,
       merged.image, merged.highResZoom || merged.image, id
     ]
   );
@@ -387,55 +471,8 @@ async function deleteArtwork(id) {
 
 // --- INQUIRIES REPOSITORY ---
 
-async function getInquiries() {
-  const p = await getPool();
-  if (!p) return null;
-  const [rows] = await p.query('SELECT * FROM inquiries ORDER BY date DESC');
-  return rows.map(r => ({
-    id: r.id,
-    artworkId: r.artwork_id,
-    artworkTitle: r.artwork_title,
-    artworkArtist: r.artwork_artist,
-    artworkPrice: parseFloat(r.artwork_price) || 0,
-    artworkImage: r.artwork_image,
-    collectorName: r.collector_name,
-    collectorEmail: r.collector_email,
-    collectorPhone: r.collector_phone,
-    framePreference: r.frame_preference,
-    notes: r.notes,
-    status: r.status,
-    opened: Boolean(r.opened),
-    isCustomerSubmission: Boolean(r.is_customer_submission),
-    date: r.date ? new Date(r.date).toISOString() : new Date().toISOString(),
-    curatorNotes: r.curator_notes
-  }));
-}
-
-async function createInquiry(inquiry) {
-  const p = await getPool();
-  if (!p) return null;
-  const inqDate = inquiry.date ? new Date(inquiry.date) : new Date();
-
-  await p.query(
-    `INSERT INTO inquiries (id, artwork_id, artwork_title, artwork_artist, artwork_price, artwork_image, collector_name, collector_email, collector_phone, frame_preference, notes, status, opened, is_customer_submission, date, curator_notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE
-       status = VALUES(status),
-       opened = VALUES(opened),
-       curator_notes = VALUES(curator_notes)`,
-    [
-      inquiry.id, inquiry.artworkId || null, inquiry.artworkTitle || 'General Acquisition Inquiry',
-      inquiry.artworkArtist || '', inquiry.artworkPrice || 0, inquiry.artworkImage || '',
-      inquiry.collectorName || 'Anonymous Collector', inquiry.collectorEmail || 'unknown@example.com',
-      inquiry.collectorPhone || '', inquiry.framePreference || 'Included Framing',
-      inquiry.notes || '', inquiry.status || 'Pending', inquiry.opened ? 1 : 0,
-      inquiry.isCustomerSubmission !== false ? 1 : 0, inqDate, inquiry.curatorNotes || ''
-    ]
-  );
-
-  const [rows] = await p.query('SELECT * FROM inquiries WHERE id = ?', [inquiry.id]);
-  if (rows.length === 0) return inquiry;
-  const r = rows[0];
+function mapInquiryRow(r) {
+  if (!r) return null;
   return {
     id: r.id,
     artworkId: r.artwork_id,
@@ -452,8 +489,64 @@ async function createInquiry(inquiry) {
     opened: Boolean(r.opened),
     isCustomerSubmission: Boolean(r.is_customer_submission),
     date: r.date ? new Date(r.date).toISOString() : new Date().toISOString(),
-    curatorNotes: r.curator_notes
+    curatorNotes: r.curator_notes,
+    generatedReply: r.generated_reply || null,
+    emailDeliveryResult: typeof r.email_delivery_result === 'string' ? JSON.parse(r.email_delivery_result) : (r.email_delivery_result || null),
+    replySentAt: r.reply_sent_at ? new Date(r.reply_sent_at).toISOString() : null,
+    makeWebhookStatus: r.make_webhook_status || 'pending'
   };
+}
+
+async function getInquiries() {
+  const p = await getPool();
+  if (!p) return null;
+  const [rows] = await p.query('SELECT * FROM inquiries ORDER BY date DESC');
+  return rows.map(mapInquiryRow);
+}
+
+async function getInquiryById(id) {
+  const p = await getPool();
+  if (!p) return null;
+  const [rows] = await p.query('SELECT * FROM inquiries WHERE id = ?', [id]);
+  if (rows.length === 0) return null;
+  return mapInquiryRow(rows[0]);
+}
+
+async function createInquiry(inquiry) {
+  const p = await getPool();
+  if (!p) return null;
+  const inqDate = inquiry.date ? new Date(inquiry.date) : new Date();
+  const deliveryResultJson = inquiry.emailDeliveryResult ? JSON.stringify(inquiry.emailDeliveryResult) : null;
+  const replySentAt = inquiry.replySentAt ? new Date(inquiry.replySentAt) : null;
+
+  await p.query(
+    `INSERT INTO inquiries (
+       id, artwork_id, artwork_title, artwork_artist, artwork_price, artwork_image, 
+       collector_name, collector_email, collector_phone, frame_preference, notes, 
+       status, opened, is_customer_submission, date, curator_notes,
+       generated_reply, email_delivery_result, reply_sent_at, make_webhook_status
+     )
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       status = VALUES(status),
+       opened = VALUES(opened),
+       curator_notes = VALUES(curator_notes),
+       generated_reply = COALESCE(VALUES(generated_reply), generated_reply),
+       email_delivery_result = COALESCE(VALUES(email_delivery_result), email_delivery_result),
+       reply_sent_at = COALESCE(VALUES(reply_sent_at), reply_sent_at),
+       make_webhook_status = COALESCE(VALUES(make_webhook_status), make_webhook_status)`,
+    [
+      inquiry.id, inquiry.artworkId || null, inquiry.artworkTitle || 'General Acquisition Inquiry',
+      inquiry.artworkArtist || '', inquiry.artworkPrice || 0, inquiry.artworkImage || '',
+      inquiry.collectorName || 'Anonymous Collector', inquiry.collectorEmail || 'unknown@example.com',
+      inquiry.collectorPhone || '', inquiry.framePreference || 'Included Framing',
+      inquiry.notes || '', inquiry.status || 'Pending', inquiry.opened ? 1 : 0,
+      inquiry.isCustomerSubmission !== false ? 1 : 0, inqDate, inquiry.curatorNotes || '',
+      inquiry.generatedReply || null, deliveryResultJson, replySentAt, inquiry.makeWebhookStatus || 'pending'
+    ]
+  );
+
+  return getInquiryById(inquiry.id);
 }
 
 async function updateInquiry(id, updates) {
@@ -466,32 +559,62 @@ async function updateInquiry(id, updates) {
   const newStatus = updates.status !== undefined ? updates.status : current.status;
   const newOpened = updates.opened !== undefined ? (updates.opened ? 1 : 0) : current.opened;
   const newCuratorNotes = updates.curatorNotes !== undefined ? updates.curatorNotes : current.curator_notes;
+  const newGeneratedReply = updates.generatedReply !== undefined ? updates.generatedReply : current.generated_reply;
+  const newDeliveryResult = updates.emailDeliveryResult !== undefined ? (typeof updates.emailDeliveryResult === 'string' ? updates.emailDeliveryResult : JSON.stringify(updates.emailDeliveryResult)) : current.email_delivery_result;
+  const newReplySentAt = updates.replySentAt !== undefined ? (updates.replySentAt ? new Date(updates.replySentAt) : null) : current.reply_sent_at;
+  const newMakeStatus = updates.makeWebhookStatus !== undefined ? updates.makeWebhookStatus : current.make_webhook_status;
 
   await p.query(
-    'UPDATE inquiries SET status = ?, opened = ?, curator_notes = ? WHERE id = ?',
-    [newStatus, newOpened, newCuratorNotes, id]
+    `UPDATE inquiries SET 
+       status = ?, opened = ?, curator_notes = ?, 
+       generated_reply = ?, email_delivery_result = ?, 
+       reply_sent_at = ?, make_webhook_status = ? 
+     WHERE id = ?`,
+    [newStatus, newOpened, newCuratorNotes, newGeneratedReply, newDeliveryResult, newReplySentAt, newMakeStatus, id]
   );
 
-  const [updated] = await p.query('SELECT * FROM inquiries WHERE id = ?', [id]);
-  const r = updated[0];
-  return {
-    id: r.id,
-    artworkId: r.artwork_id,
-    artworkTitle: r.artwork_title,
-    artworkArtist: r.artwork_artist,
-    artworkPrice: parseFloat(r.artwork_price) || 0,
-    artworkImage: r.artwork_image,
-    collectorName: r.collector_name,
-    collectorEmail: r.collector_email,
-    collectorPhone: r.collector_phone,
-    framePreference: r.frame_preference,
-    notes: r.notes,
-    status: r.status,
-    opened: Boolean(r.opened),
-    isCustomerSubmission: Boolean(r.is_customer_submission),
-    date: r.date ? new Date(r.date).toISOString() : new Date().toISOString(),
-    curatorNotes: r.curator_notes
-  };
+  return getInquiryById(id);
+}
+
+async function updateInquiryReply(id, replyData) {
+  const p = await getPool();
+  if (!p) return null;
+  const replySentAt = replyData.replySentAt ? new Date(replyData.replySentAt) : new Date();
+  const deliveryResultJson = replyData.emailDeliveryResult ? (typeof replyData.emailDeliveryResult === 'string' ? replyData.emailDeliveryResult : JSON.stringify(replyData.emailDeliveryResult)) : null;
+  const status = replyData.status || 'Contacted';
+
+  await p.query(
+    `UPDATE inquiries SET 
+       generated_reply = ?, 
+       status = ?, 
+       reply_sent_at = ?, 
+       email_delivery_result = COALESCE(?, email_delivery_result),
+       make_webhook_status = 'completed'
+     WHERE id = ?`,
+    [replyData.generatedReply, status, replySentAt, deliveryResultJson, id]
+  );
+  return getInquiryById(id);
+}
+
+async function updateInquiryDeliveryResult(id, deliveryResult) {
+  const p = await getPool();
+  if (!p) return null;
+  const jsonStr = deliveryResult ? (typeof deliveryResult === 'string' ? deliveryResult : JSON.stringify(deliveryResult)) : null;
+  await p.query(
+    'UPDATE inquiries SET email_delivery_result = ? WHERE id = ?',
+    [jsonStr, id]
+  );
+  return getInquiryById(id);
+}
+
+async function updateInquiryMakeStatus(id, status) {
+  const p = await getPool();
+  if (!p) return null;
+  await p.query(
+    'UPDATE inquiries SET make_webhook_status = ? WHERE id = ?',
+    [status, id]
+  );
+  return getInquiryById(id);
 }
 
 async function syncInquiries(inquiriesList) {
@@ -620,6 +743,121 @@ async function updateAdminPassword(newPassword) {
   return true;
 }
 
+// --- REVIEWS REPOSITORY ---
+
+async function getApprovedReviews(artworkId = null) {
+  const p = await getPool();
+  if (!p || !isAvailable) return null;
+  let sql = 'SELECT * FROM reviews WHERE status = "approved"';
+  const params = [];
+  if (artworkId) {
+    sql += ' AND (artwork_id = ? OR artwork_id IS NULL)';
+    params.push(artworkId);
+  }
+  sql += ' ORDER BY created_at DESC';
+  const [rows] = await p.query(sql, params);
+  return rows.map(r => ({
+    id: r.id,
+    artworkId: r.artwork_id,
+    artworkTitle: r.artwork_title,
+    authorName: r.author_name,
+    authorEmail: r.author_email,
+    authorLocation: r.author_location,
+    rating: r.rating,
+    comment: r.comment,
+    status: r.status,
+    createdAt: r.created_at,
+    reviewedAt: r.reviewed_at
+  }));
+}
+
+async function getAllReviews(statusFilter = null) {
+  const p = await getPool();
+  if (!p || !isAvailable) return null;
+  let sql = 'SELECT * FROM reviews';
+  const params = [];
+  if (statusFilter && statusFilter !== 'all') {
+    sql += ' WHERE status = ?';
+    params.push(statusFilter);
+  }
+  sql += ' ORDER BY created_at DESC';
+  const [rows] = await p.query(sql, params);
+  return rows.map(r => ({
+    id: r.id,
+    artworkId: r.artwork_id,
+    artworkTitle: r.artwork_title,
+    authorName: r.author_name,
+    authorEmail: r.author_email,
+    authorLocation: r.author_location,
+    rating: r.rating,
+    comment: r.comment,
+    status: r.status,
+    createdAt: r.created_at,
+    reviewedAt: r.reviewed_at
+  }));
+}
+
+async function createReview(rev) {
+  const p = await getPool();
+  if (!p || !isAvailable) return null;
+  const newId = rev.id || 'rev-' + Math.floor(1000 + Math.random() * 9000);
+  const now = new Date();
+  await p.query(
+    `INSERT INTO reviews (id, artwork_id, artwork_title, author_name, author_email, author_location, rating, comment, status, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
+    [
+      newId, rev.artworkId || null, rev.artworkTitle || null,
+      rev.authorName, rev.authorEmail, rev.authorLocation || null,
+      rev.rating || 5, rev.comment, now
+    ]
+  );
+  return {
+    id: newId,
+    artworkId: rev.artworkId || null,
+    artworkTitle: rev.artworkTitle || null,
+    authorName: rev.authorName,
+    authorEmail: rev.authorEmail,
+    authorLocation: rev.authorLocation || null,
+    rating: rev.rating || 5,
+    comment: rev.comment,
+    status: 'pending',
+    createdAt: now.toISOString()
+  };
+}
+
+async function updateReviewStatus(id, status) {
+  const p = await getPool();
+  if (!p || !isAvailable) return null;
+  const validStatus = ['pending', 'approved', 'rejected'].includes(status) ? status : 'pending';
+  await p.query(
+    'UPDATE reviews SET status = ?, reviewed_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [validStatus, id]
+  );
+  const [rows] = await p.query('SELECT * FROM reviews WHERE id = ?', [id]);
+  if (!rows || rows.length === 0) return null;
+  const r = rows[0];
+  return {
+    id: r.id,
+    artworkId: r.artwork_id,
+    artworkTitle: r.artwork_title,
+    authorName: r.author_name,
+    authorEmail: r.author_email,
+    authorLocation: r.author_location,
+    rating: r.rating,
+    comment: r.comment,
+    status: r.status,
+    createdAt: r.created_at,
+    reviewedAt: r.reviewed_at
+  };
+}
+
+async function deleteReview(id) {
+  const p = await getPool();
+  if (!p || !isAvailable) return false;
+  await p.query('DELETE FROM reviews WHERE id = ?', [id]);
+  return true;
+}
+
 module.exports = {
   initDatabase,
   getPool,
@@ -631,8 +869,12 @@ module.exports = {
   updateArtwork,
   deleteArtwork,
   getInquiries,
+  getInquiryById,
   createInquiry,
   updateInquiry,
+  updateInquiryReply,
+  updateInquiryDeliveryResult,
+  updateInquiryMakeStatus,
   syncInquiries,
   getUsers,
   getUserByEmail,
@@ -641,5 +883,10 @@ module.exports = {
   updateUserProfile,
   updateUserWishlist,
   getAdmin,
-  updateAdminPassword
+  updateAdminPassword,
+  getApprovedReviews,
+  getAllReviews,
+  createReview,
+  updateReviewStatus,
+  deleteReview
 };

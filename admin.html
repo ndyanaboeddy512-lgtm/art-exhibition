@@ -143,6 +143,9 @@
           <button class="admin-tab-btn active" id="tabInquiriesBtn" onclick="AdminApp.switchTab('inquiries')">
             📬 Customer Inquiries (<span id="tabInquiriesCount">0</span>)
           </button>
+          <button class="admin-tab-btn" id="tabReviewsBtn" onclick="AdminApp.switchTab('reviews')">
+            ⭐ Visitor Reviews (<span id="tabReviewsPendingCount">0</span>)
+          </button>
           <button class="admin-tab-btn" id="tabInventoryBtn" onclick="AdminApp.switchTab('inventory')">
             🎨 Artworks & Inventory
           </button>
@@ -156,6 +159,10 @@
           <div class="admin-stat-card" style="cursor: pointer;" onclick="AdminApp.switchTab('inquiries')" title="Click to view inquiries">
             <span class="stat-label">Pending Inquiries ↗</span>
             <span class="stat-number" id="statPendingInquiries" style="color: #ffb74d;">0</span>
+          </div>
+          <div class="admin-stat-card" style="cursor: pointer;" onclick="AdminApp.switchTab('reviews')" title="Click to review testimonials">
+            <span class="stat-label">Pending Reviews ↗</span>
+            <span class="stat-number" id="statPendingReviews" style="color: #64b5f6;">0</span>
           </div>
           <div class="admin-stat-card">
             <span class="stat-label">Available Art Total Value</span>
@@ -267,6 +274,49 @@
                 </tr>
               </thead>
               <tbody id="inquiriesTableBody">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- VIEW: Visitor Reviews Moderation Pipeline -->
+        <div id="viewReviewsSection" class="admin-panel-card" style="display: none;">
+          <div class="admin-panel-header" style="flex-wrap: wrap; gap: 1rem; align-items: flex-start;">
+            <div>
+              <h3>Visitor Testimonials & Accolades</h3>
+              <p style="color: var(--text-inverse-muted); font-size: 0.85rem;">
+                Moderate collector and visitor reviews. Only curatorial-approved testimonials appear on the public gallery.
+              </p>
+            </div>
+            <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+              <input type="text" id="reviewsSearch" class="form-control" style="width: 200px; padding: 6px 12px; font-size: 0.82rem; background: #121211; color: #fff; border-color: var(--border-dark);" placeholder="Search author, comment...">
+              <select id="reviewsStatusFilter" class="form-control" style="width: 140px; padding: 6px 10px; font-size: 0.82rem; background: #121211; color: #fff; border-color: var(--border-dark);">
+                <option value="all">All Reviews</option>
+                <option value="pending" selected>Pending Review</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+              <button class="btn-secondary" style="color: #fff; border-color: var(--border-dark); font-size: 0.78rem; padding: 7px 14px; display: inline-flex; align-items: center; gap: 6px;" onclick="AdminApp.fetchReviews(); AdminApp.showToast('Reviews refreshed');">
+                ↻ Refresh
+              </button>
+            </div>
+          </div>
+
+          <div style="overflow-x: auto;">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Author / Location</th>
+                  <th>Rating</th>
+                  <th>Artwork (if linked)</th>
+                  <th>Testimonial Reflection</th>
+                  <th>Date</th>
+                  <th>Curatorial Actions</th>
+                </tr>
+              </thead>
+              <tbody id="reviewsTableBody">
                 <!-- Populated dynamically -->
               </tbody>
             </table>
@@ -560,6 +610,32 @@
       <div style="background: #121211; padding: 1.25rem; border: 1px solid var(--border-dark); border-radius: 4px; margin-bottom: 1.25rem;">
         <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--accent-gold); letter-spacing: 0.1em; margin-bottom: 6px;">Customer Message & Delivery Request</h4>
         <div id="detailInquiryNotes" style="font-size: 0.92rem; color: #eee; line-height: 1.5; font-style: italic;">"Message"</div>
+      </div>
+
+      <!-- Delivery & Automation Diagnostics -->
+      <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.25rem; background: #121211; padding: 0.75rem 1rem; border: 1px solid var(--border-dark); border-radius: 4px; font-size: 0.8rem;">
+        <div style="flex: 1;">
+          <span style="color: #888; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.08em; display: block;">Email Notification:</span>
+          <span id="detailEmailDeliveryBadge" style="font-weight: 600; color: #aaa;">Checking...</span>
+        </div>
+        <div style="flex: 1; border-left: 1px solid #2a2826; padding-left: 1rem;">
+          <span style="color: #888; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.08em; display: block;">Make.com Automation:</span>
+          <span id="detailMakeStatusBadge" style="font-weight: 600; color: #aaa;">Pending</span>
+        </div>
+      </div>
+
+      <!-- Generated Response & Verified Details -->
+      <div style="background: #121211; padding: 1.25rem; border: 1px solid var(--border-dark); border-radius: 4px; margin-bottom: 1.25rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--accent-gold); letter-spacing: 0.1em; margin: 0;">Client Response (Verified Artwork Details)</h4>
+          <span id="detailReplySentAt" style="font-size: 0.72rem; color: #888;"></span>
+        </div>
+        <textarea id="detailGeneratedReplyInput" class="form-control" style="background: #181716; color: #eee; border-color: var(--border-dark); font-size: 0.85rem; height: 80px; line-height: 1.5; resize: vertical;" placeholder="Response prepared with verified artwork specifications, certificate, and delivery details..."></textarea>
+        <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
+          <button type="button" class="btn-primary" id="btnSendDirectReply" style="background: var(--accent-gold); color: #000; font-size: 0.78rem; padding: 6px 14px; font-weight: 600; border-radius: 2px;" onclick="AdminApp.sendInquiryReply()">
+            ✉ Send Response via Resend
+          </button>
+        </div>
       </div>
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
